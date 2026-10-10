@@ -1,0 +1,51 @@
+================================================================================
+   PRACTICAL 4: HEURISTIC ATTACK CLASSIFICATION AUDIT REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Execution Date : 2026-10-09 04:10:43
+
+--------------------------------------------------------------------------------
+1. PRIMARY ENTERPRISE DATASET CLASSIFICATION AUDIT (server_access.log)
+--------------------------------------------------------------------------------
+Source Input File        : preprocessed_logs.csv
+Total Rows Classified    : 300,010
+Classification Runtime   : 29.08 seconds (10,316.7 rows/sec)
+Macro Ratio              : 68.73% Benign : 31.27% Attack
+Benign Requests          : 206,200
+Malicious Requests       : 93,810
+In-Memory Data Size      : 245.36 MB
+
+Class-by-Class Breakdown (10 Attack Vectors + Benign):
+  * benign              :  206,200 records (68.73%) [INFO]
+  * path_traversal      :   10,558 records ( 3.52%) [MEDIUM]
+  * web_shell           :   10,481 records ( 3.49%) [CRITICAL]
+  * brute_force         :   10,466 records ( 3.49%) [MEDIUM]
+  * ssrf                :   10,429 records ( 3.48%) [HIGH]
+  * ddos_http_flood     :   10,276 records ( 3.43%) [HIGH]
+  * xss                 :    9,672 records ( 3.22%) [HIGH]
+  * dir_fuzzing         :    9,497 records ( 3.17%) [LOW]
+  * mal_scanner         :    9,140 records ( 3.05%) [LOW]
+  * sqli                :    8,367 records ( 2.79%) [HIGH]
+  * command_injection   :    4,924 records ( 1.64%) [CRITICAL]
+
+Severity Triage Summary:
+  * INFO      :  206,200 records (68.73%)
+  * HIGH      :   38,744 records (12.91%)
+  * MEDIUM    :   21,024 records ( 7.01%)
+  * LOW       :   18,637 records ( 6.21%)
+  * CRITICAL  :   15,405 records ( 5.13%)
+
+--------------------------------------------------------------------------------
+2. EXTERNAL PRODUCTION BENCHMARK AUDIT (Elastic Official Apache Logs)
+--------------------------------------------------------------------------------
+Source External File     : elastic_preprocessed_logs.csv
+Total Lines Evaluated    : 10,000
+Classification Runtime   : 0.23 seconds (43,478.3 rows/sec)
+Benign Requests Verified : 6,839 (68.39%)
+Attacks Identified       : 3,161 (31.61%)
+Attack Vectors Detected  : {'benign': 6839, 'ddos_http_flood': 3157, 'ssrf': 4}
+
+================================================================================
+END OF PRACTICAL 4 CLASSIFICATION REPORT
+================================================================================
