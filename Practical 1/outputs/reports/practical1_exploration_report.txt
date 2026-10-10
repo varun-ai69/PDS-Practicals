@@ -1,0 +1,68 @@
+================================================================================
+   PRACTICAL 1: UNSTRUCTURED SERVER ACCESS LOG DATA EXPLORATION REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Dataset Target : server_access.log
+Execution Date : 2026-10-10 19:30:07
+
+--------------------------------------------------------------------------------
+1. INGESTION TELEMETRY & MEMORY CONSUMPTION AUDIT
+--------------------------------------------------------------------------------
+Physical File Size     : 87.89 MB (92,161,229 bytes)
+Total Physical Lines   : 300,010 lines
+Ingestion Throughput   : 9,637 lines/sec
+Streaming Runtime      : 31.130 seconds
+Peak RAM Usage         : 7.34 MB (O(1) Memory Footprint)
+Memory Savings         : > 96% compared to eager in-memory loading
+
+--------------------------------------------------------------------------------
+2. TYPICAL COMBINED LOG FORMAT ANATOMY IDENTIFIED
+--------------------------------------------------------------------------------
+A typical Apache/Nginx Combined Log Format line adheres to the 9-tuple schema:
+  %h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-Agent}i"
+
+Token Breakdown:
+  1. %h (Client IP)       : Remote IP address initiating the connection.
+  2. %l (Client Ident)    : RFC 1413 identity of the client (usually '-').
+  3. %u (User ID)         : HTTP Basic Auth authenticated user (usually '-').
+  4. %t (Timestamp)       : Date and time of request [DD/Mon/YYYY:HH:MM:SS +TZ].
+  5. %r (Request Line)    : Method, Resource URI, and HTTP protocol.
+  6. %>s (Status Code)    : Final 3-digit HTTP response code from server.
+  7. %b (Bytes Sent)      : Size of response object excluding headers.
+  8. Referer Header       : Originating URL referring the client to this resource.
+  9. User-Agent Header    : Browser, operating system, or bot identification.
+
+--------------------------------------------------------------------------------
+3. REPRODUCIBLE RANDOM SAMPLES INSPECTION (N = 10)
+--------------------------------------------------------------------------------
+Line #128343 | IP: 191.220.166.232 | GET   | Status: 200 | URI: /search?q=%3Cstyle%3E%40keyframes%20x%7Bfrom%...
+Line #22772  | IP: 189.220.208.176 | POST  | Status: 200 | URI: /cmd.aspx?action=dir
+Line #29552  | IP: 24.28.147.187   | GET   | Status: 200 | URI: /store/item?modo=registro&login=piatt&passwor...
+Line #233428 | IP: 192.87.177.29   | GET   | Status: 404 | URI: /store/item?modo=entrar&login=dev&pwd=v2e2udO...
+Line #55457  | IP: 73.95.41.66     | POST  | Status: 200 | URI: /store/item?modo=entrar&login=gabbai&pwd=pomp...
+Line #267804 | IP: 73.130.15.101   | GET   | Status: 302 | URI: /store/item?RotomMow Rotom
+Line #50443  | IP: 199.220.30.39   | GET   | Status: 403 | URI: /products/item?id=1%22%20%20%20%29%20%20%20%2...
+Line #227047 | IP: 104.28.149.7    | GET   | Status: 301 | URI: /store/item?modo=entrar&login=marlee-j5&pwd=m...
+Line #298818 | IP: 24.254.98.201   | GET   | Status: 200 | URI: /store/item?Jessie,Lin,6155,Air Defense Artil...
+Line #152717 | IP: 98.241.206.124  | GET   | Status: 302 | URI: /store/item?modo=registro&login=marykay&passw...
+
+--------------------------------------------------------------------------------
+4. USEFUL FIELDS IDENTIFIED FOR ADVANCED ANALYSIS
+--------------------------------------------------------------------------------
+  * Resource URI & Payload: Critical for detecting SQLi, XSS, Path Traversal, and LFI.
+  * Client IP & Timestamp : Essential for calculating inter-request timing, IP velocity,
+                            burst ratios, and identifying DDoS / Brute Force attacks.
+  * HTTP Status Code      : Diagnostic for 401/403 (Brute Force/Admin probes),
+                            404 (Directory Fuzzing), and 503/429 (DDoS Floods).
+  * User-Agent Header     : Discriminates legitimate browsers from automated scanners
+                            (sqlmap, nikto, masscan, dirbuster) and bots.
+
+--------------------------------------------------------------------------------
+5. CROSS-VERIFICATION AUDIT ON REAL-WORLD EXTERNAL LOGS
+--------------------------------------------------------------------------------
+Successfully streamed 420,000 raw HTTP lines from CSIC 2010 (normalTrafficTraining.txt)
+
+================================================================================
+END OF PRACTICAL 1 EXPLORATION REPORT
+================================================================================
