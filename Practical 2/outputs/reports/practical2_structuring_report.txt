@@ -1,0 +1,52 @@
+================================================================================
+   PRACTICAL 2: UNSTRUCTURED LOG CONVERSION INTO STRUCTURED DATASET REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Execution Date : 2026-10-09 03:41:55
+
+--------------------------------------------------------------------------------
+1. PRIMARY ENTERPRISE DATASET STRUCTURING AUDIT
+--------------------------------------------------------------------------------
+Source File Name       : server_access.log
+Source File Size       : 87.89 MB
+Total Physical Lines   : 300,010
+Parsed DataFrame Rows  : 300,010
+Parsing Success Rate   : 99.9933%
+Malformed Lines        : 20
+Parsing Runtime        : 3.6 seconds (83,248.6 lines/sec)
+Initial Memory Usage   : 139.68 MB
+Optimized Memory Usage : 126.46 MB (9.47% reduction)
+
+--------------------------------------------------------------------------------
+2. CANONICAL 13-COLUMN SCHEMA DEFINITION & DATA TYPES
+--------------------------------------------------------------------------------
+  * line_number            : int32           (Completeness: 100.0%)
+  * client_ip              : str             (Completeness: 100.0%)
+  * ident                  : str             (Completeness: 0.0%)
+  * auth_user              : str             (Completeness: 0.0%)
+  * timestamp              : str             (Completeness: 100.0%)
+  * request_method         : category        (Completeness: 100.0%)
+  * resource_requested     : str             (Completeness: 100.0%)
+  * http_protocol          : category        (Completeness: 100.0%)
+  * status_code            : int16           (Completeness: 100.0%)
+  * bytes_sent             : int32           (Completeness: 100.0%)
+  * referrer               : str             (Completeness: 65.0%)
+  * user_agent             : str             (Completeness: 100.0%)
+  * payload                : str             (Completeness: 87.7%)
+  * parse_success          : int8            (Completeness: 100.0%)
+
+--------------------------------------------------------------------------------
+3. EXTERNAL REAL-WORLD BENCHMARK AUDIT (Elastic Production Server)
+--------------------------------------------------------------------------------
+Source File Name       : elastic_apache_access.log
+Source File Size       : 2.26 MB
+Total Lines Processed  : 10,000
+Parsing Success Rate   : 100.0%
+Unique Client IPs      : 1,753
+Top Client IP          : 66.249.73.135 (482 requests)
+HTTP Status Breakdown  : {200: np.int64(9126), 304: np.int64(445), 404: np.int64(213), 301: np.int64(164), 206: np.int64(45), 500: np.int64(3), 403: np.int64(2), 416: np.int64(2)}
+
+================================================================================
+END OF PRACTICAL 2 STRUCTURING REPORT
+================================================================================
