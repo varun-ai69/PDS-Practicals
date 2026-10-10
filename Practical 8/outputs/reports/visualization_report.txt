@@ -1,0 +1,55 @@
+================================================================================
+   PRACTICAL 8: DATA VISUALIZATION AND EDA TECHNICAL REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Execution Date : 2026-10-09 05:53:26
+
+--------------------------------------------------------------------------------
+1. DATASET VISUALIZATION AUDIT
+--------------------------------------------------------------------------------
+Total Telemetry Records Analyzed : 160,076
+Total Unique Client IPs          : 2,619
+Total Multi-Class Attack Vectors : 11
+Peak Hourly Traffic Arrival Rate : 43,039 requests/hour
+Peak Hourly Attack Volume        : 42,483 attacks/hour
+
+--------------------------------------------------------------------------------
+2. TOP 10 ATTACKING IPS (IDENTIFIED THREAT ACTORS)
+--------------------------------------------------------------------------------
+Client IP Address      | Attacks Executed   | Total Hits  
+--------------------------------------------------------------------------------
+192.220.66.221         |              1,144 |        1,149
+196.220.24.102         |              1,138 |        1,158
+193.220.105.230        |              1,137 |        1,156
+191.220.222.17         |              1,111 |        1,129
+192.220.231.245        |              1,104 |        1,135
+197.220.85.214         |              1,095 |        1,095
+185.220.247.72         |              1,078 |        1,078
+189.220.213.149        |              1,073 |        1,073
+194.220.94.172         |              1,070 |        1,094
+193.220.100.3          |              1,068 |        1,068
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+3. GENERATED VISUALIZATION ARTIFACTS INVENTORY
+--------------------------------------------------------------------------------
+Static High-Resolution PNG Plots (outputs/plots/):
+  * 01_requests_per_hour.png
+  * 02_top10_attacking_ips.png
+  * 03_attack_categories_over_time.png
+  * 04_status_code_distribution.png
+  * 05_ip_vs_request_type_heatmap.png
+  * 06_attack_class_distribution.png
+  * 07_feature_correlation_heatmap.png
+
+Interactive Plotly Dashboards (outputs/interactive/):
+  * 01_requests_per_hour.html
+  * 02_top10_attacking_ips.html
+  * 03_attack_categories_over_time.html
+  * 04_status_code_distribution.html
+  * 05_ip_vs_request_type_heatmap.html
+
+================================================================================
+END OF PRACTICAL 8 VISUALIZATION REPORT
+================================================================================
