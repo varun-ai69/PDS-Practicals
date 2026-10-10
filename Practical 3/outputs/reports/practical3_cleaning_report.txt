@@ -1,0 +1,49 @@
+================================================================================
+   PRACTICAL 3: DATA CLEANING AND PREPROCESSING AUDIT REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Execution Date : 2026-10-09 03:54:19
+
+--------------------------------------------------------------------------------
+1. PRIMARY ENTERPRISE DATASET CLEANING AUDIT (server_access.log)
+--------------------------------------------------------------------------------
+Source Input File        : structured_logs.csv
+Total Input Rows         : 300,010
+Total Cleaned Rows       : 300,010 (100.0% Retention)
+Total Columns Output     : 21 (Enriched with datetime & clean paths)
+Processing Runtime       : 2.83 seconds (106,010.6 rows/sec)
+Memory Utilization       : 226.14 MB
+Rapid Consecutive Dups   : 720 flagged
+Unique Clean Paths       : 57
+
+Missing Value Imputation Audit:
+  * line_number           : Before =        0 nulls | After =   0 nulls
+  * client_ip             : Before =        0 nulls | After =   0 nulls
+  * ident                 : Before =  300,010 nulls | After =   0 nulls
+  * auth_user             : Before =  300,010 nulls | After =   0 nulls
+  * timestamp             : Before =       20 nulls | After =   0 nulls
+  * request_method        : Before =        0 nulls | After =   0 nulls
+  * resource_requested    : Before =        0 nulls | After =   0 nulls
+  * http_protocol         : Before =        0 nulls | After =   0 nulls
+  * status_code           : Before =        0 nulls | After =   0 nulls
+  * bytes_sent            : Before =        0 nulls | After =   0 nulls
+  * referrer              : Before =  105,020 nulls | After =   0 nulls
+  * user_agent            : Before =       20 nulls | After =   0 nulls
+  * payload               : Before =   36,843 nulls | After =   0 nulls
+  * parse_success         : Before =        0 nulls | After =   0 nulls
+
+--------------------------------------------------------------------------------
+2. EXTERNAL PRODUCTION BENCHMARK (Elastic Official Apache Logs)
+--------------------------------------------------------------------------------
+Source External File     : elastic_structured_logs.csv
+Total Lines Ingested     : 10,000
+Total Lines Cleaned      : 10,000 (100.0% Retention)
+Processing Runtime       : 0.07 seconds (142,857.1 rows/sec)
+Unique Clean Paths       : 1,323
+Rapid Consecutive Dups   : 20 flagged
+Null Values Remaining    : 0
+
+================================================================================
+END OF PRACTICAL 3 CLEANING REPORT
+================================================================================
