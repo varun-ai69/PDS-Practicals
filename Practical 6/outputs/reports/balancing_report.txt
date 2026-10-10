@@ -1,0 +1,57 @@
+================================================================================
+   PRACTICAL 6: DATASET BALANCING & PARTITIONING AUDIT REPORT
+================================================================================
+
+Course         : Python for Data Science (BE05000231_PDS)
+Execution Date : 2026-10-09 05:49:29
+
+--------------------------------------------------------------------------------
+1. SPLIT PROTOCOL & DATA LEAKAGE AUDIT
+--------------------------------------------------------------------------------
+Split Protocol              : Stratified train_test_split (80% Train / 20% Test)
+Zero Data Leakage Check     : PASS (Resampling executed STRICTLY on training split)
+Total Dataset Records       : 300,010
+Training Split Records      : 240,008 (80.00%)
+Test Split Records (Locked) : 60,002 (20.00%)
+Target Features Resampled   : 31 (30 Canonical Features + Anomaly Score)
+
+--------------------------------------------------------------------------------
+2. RESAMPLING METHODOLOGY BENCHMARK COMPARISON
+--------------------------------------------------------------------------------
+Method 1: Random Under-Sampling (RUS)
+  * Runtime     : 0.74 seconds
+  * Total Rows  : 43,329
+  * Critique    : Severely discards rich benign distribution variance.
+
+Method 2: Random Over-Sampling (ROS)
+  * Runtime     : 0.65 seconds
+  * Total Rows  : 314,960
+  * Critique    : Introduces duplicate row vectors, promoting decision tree overfitting.
+
+Method 3: SMOTE (k-Nearest Neighbors Interpolation) [SELECTED FINAL METHOD]
+  * Runtime     : 2.58 seconds
+  * Total Rows  : 165,000
+  * Per Class   : Exactly 15,000 records per class across all 11 classes (1:1:1:1:1:1:1:1:1:1:1)
+  * Advantage   : Synthesizes mathematically novel feature vectors along k-NN manifolds.
+
+--------------------------------------------------------------------------------
+3. CLASS-BY-CLASS DISTRIBUTION BREAKDOWN
+--------------------------------------------------------------------------------
+Attack Class           | Original Train | RUS      | ROS      | Final SMOTE 
+--------------------------------------------------------------------------------
+benign                 |        164,960 |    3,939 |  164,960 |       15,000
+brute_force            |          8,373 |    3,939 |   15,000 |       15,000
+command_injection      |          3,939 |    3,939 |   15,000 |       15,000
+ddos_http_flood        |          8,221 |    3,939 |   15,000 |       15,000
+dir_fuzzing            |          7,597 |    3,939 |   15,000 |       15,000
+mal_scanner            |          7,312 |    3,939 |   15,000 |       15,000
+path_traversal         |          8,446 |    3,939 |   15,000 |       15,000
+sqli                   |          6,694 |    3,939 |   15,000 |       15,000
+ssrf                   |          8,343 |    3,939 |   15,000 |       15,000
+web_shell              |          8,385 |    3,939 |   15,000 |       15,000
+xss                    |          7,738 |    3,939 |   15,000 |       15,000
+--------------------------------------------------------------------------------
+
+================================================================================
+END OF PRACTICAL 6 TECHNICAL REPORT
+================================================================================
