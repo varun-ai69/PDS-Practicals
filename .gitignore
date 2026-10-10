@@ -1,0 +1,43 @@
+# ==============================================================================
+# Git Ignore Configuration - Python for Data Science (PDS-Practicals)
+# ==============================================================================
+
+# Python Bytecode & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Operating System & IDE Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Ignore Heavy Data Telemetry & Raw Logs (Keep models, png, and code)
+*.log
+*.csv
+*.parquet
+*.parquet.gzip
+*.tar.gz
+*.zip
+*.7z
+*.gz
+
+# Raw Datasets & Subfolders
+datasets/
+data/raw/
+pds/
+
+# Antigravity / Gemini internal artifacts
+.gemini/
