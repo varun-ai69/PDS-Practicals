@@ -1,32 +1,37 @@
 """
 inference_engine.py
 ===================
-Model Inference, Confidence Scoring & Zero-Day Anomaly Detection Engine (Stage 4).
-Supports:
-1. Random Forest Ensemble (Champion)
-2. Decision Tree (Tuned)
-3. Logistic Regression (Baseline)
+Authentic Machine Learning Threat Inference Engine for Practical 10.
+Executes physical trained champion models (Random Forest Tuned, Decision Tree Tuned, Logistic Regression)
+with 100% independent ML predictions.
+ZERO hardcoded if-else overrides, ZERO regex fallback rules.
 """
 
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional
 import pandas as pd
 import numpy as np
 import joblib
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MODELS_DIR = PROJECT_ROOT / "Practical 9" / "outputs" / "models"
-RETRAIN_MODELS_DIR = PROJECT_ROOT / "model_retraining" / "outputs" / "models"
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.features.feature_definitions import CANONICAL_FEATURE_NAMES
+
+FEATURE_COLUMNS = CANONICAL_FEATURE_NAMES + ["anomaly_score"]
+
+MODELS_DIR = PROJECT_ROOT / "Practical 9" / "outputs" / "models" / "balanced"
+SRC_MODELS_DIR = PROJECT_ROOT / "src" / "models"
 
 
-# Human-Readable Security Metadata
+# Human-Readable Cybersecurity SOC Metadata
 ATTACK_METADATA = {
     "benign": {
         "display_name": "Normal / Legitimate Traffic",
-        "severity": "Info",
+        "severity": "Low",
         "badge_color": "#10B981",
-        "action": "Allow Request (No Intervention Required)"
+        "action": "Allow Request (Normal Operation)"
     },
     "sqli": {
         "display_name": "SQL Injection (SQLi)",
@@ -38,7 +43,7 @@ ATTACK_METADATA = {
         "display_name": "Cross-Site Scripting (XSS)",
         "severity": "High",
         "badge_color": "#F97316",
-        "action": "Sanitize Input & Content-Security-Policy Alert"
+        "action": "Sanitize Input & Apply Content-Security-Policy"
     },
     "command_injection": {
         "display_name": "OS Command Injection",
@@ -56,51 +61,50 @@ ATTACK_METADATA = {
         "display_name": "Credential Brute Force",
         "severity": "Medium",
         "badge_color": "#8B5CF6",
-        "action": "Enforce CAPTCHA & Exponential Backoff Delay"
+        "action": "Enforce Multi-Factor Auth & Exponential Rate Limit"
     },
     "ddos_http_flood": {
         "display_name": "DDoS HTTP Flood",
         "severity": "High",
         "badge_color": "#B91C1C",
-        "action": "Trigger Cloudflare / Edge Rate-Limiting"
+        "action": "Trigger Edge Volumetric Mitigation & Rate-Limiting"
     },
     "dir_fuzzing": {
-        "display_name": "Directory Fuzzing / Enumeration",
+        "display_name": "Directory Fuzzing / Discovery",
         "severity": "Medium",
         "badge_color": "#D97706",
-        "action": "Return HTTP 404 Honeytoken / Rate-Limit Subnet"
+        "action": "Return HTTP 404 Honeytoken & Throttle Subnet"
     },
     "mal_scanner": {
         "display_name": "Malicious Vulnerability Scanner",
         "severity": "Medium",
         "badge_color": "#D97706",
-        "action": "Drop Connection & Log Offensive Signature"
+        "action": "Drop Connection & Block Scanner User-Agent"
     },
     "ssrf": {
         "display_name": "Server-Side Request Forgery (SSRF)",
         "severity": "Critical",
         "badge_color": "#991B1B",
-        "action": "Block Metadata Endpoints (169.254.169.254)"
+        "action": "Quarantine Request & Block Cloud Metadata Endpoints"
     },
     "web_shell": {
         "display_name": "Web Shell Execution / Upload",
         "severity": "Critical",
         "badge_color": "#7F1D1D",
-        "action": "Quarantine File Upload & Terminate Session"
+        "action": "Quarantine File Upload & Terminate Compromised Session"
     }
 }
 
 
 class ThreatInferenceEngine:
-    """Manages model loading and real-time threat inference."""
+    """Manages model loading and 100% independent machine learning prediction."""
 
     AVAILABLE_MODELS = {
-        "Random Forest Ensemble (Champion)": "random_forest_retrained_170k.joblib",
-        "Random Forest Ensemble (Academic Base)": "random_forest_balanced.joblib",
-        "Decision Tree (Tuned Fast)": "decision_tree_retrained_170k.joblib",
-        "Decision Tree (Academic Base)": "decision_tree_tuned.joblib",
-        "Logistic Regression (Linear Baseline)": "logistic_regression_retrained_170k.joblib",
-        "Logistic Regression (Academic Base)": "logistic_regression_balanced.joblib"
+        "Random Forest Ensemble (Champion)": "random_forest_tuned.joblib",
+        "Decision Tree (Tuned Fast)": "decision_tree_tuned.joblib",
+        "Random Forest Ensemble (Base)": "random_forest.joblib",
+        "Decision Tree (Base)": "decision_tree.joblib",
+        "Logistic Regression (Linear Baseline)": "logistic_regression.joblib"
     }
 
     def __init__(self, model_key: str = "Random Forest Ensemble (Champion)", model_path: Path = None):
@@ -110,15 +114,14 @@ class ThreatInferenceEngine:
     def _load_model(self, model_key: str, model_path: Path = None) -> Any:
         if model_path is not None and Path(model_path).exists():
             return joblib.load(model_path)
-            
-        fname = self.AVAILABLE_MODELS.get(model_key, "random_forest_retrained_170k.joblib")
-        # Check retrained models first for 170k models
-        if (RETRAIN_MODELS_DIR / fname).exists():
-            return joblib.load(RETRAIN_MODELS_DIR / fname)
-        elif (MODELS_DIR / fname).exists():
+
+        fname = self.AVAILABLE_MODELS.get(model_key, "random_forest_tuned.joblib")
+        if (MODELS_DIR / fname).exists():
             return joblib.load(MODELS_DIR / fname)
-        elif (MODELS_DIR / "random_forest_balanced.joblib").exists():
-            return joblib.load(MODELS_DIR / "random_forest_balanced.joblib")
+        elif (SRC_MODELS_DIR / fname).exists():
+            return joblib.load(SRC_MODELS_DIR / fname)
+        elif (SRC_MODELS_DIR / "random_forest_champion.joblib").exists():
+            return joblib.load(SRC_MODELS_DIR / "random_forest_champion.joblib")
         else:
             raise FileNotFoundError(f"Trained model not found at {MODELS_DIR / fname}")
 
@@ -128,19 +131,23 @@ class ThreatInferenceEngine:
             self.current_model_key = model_key
 
     def predict(self, df_features: pd.DataFrame, df_clean: Any = None) -> pd.DataFrame:
-        """Executes multi-class prediction, confidence calculation, and anomaly detection."""
+        """
+        Executes 100% independent machine learning multi-class prediction without heuristic overrides.
+        """
         if df_features.empty:
             return pd.DataFrame()
 
-        X = df_features.fillna(0).to_numpy(dtype=np.float32)
+        # Enforce canonical feature order
+        feat_cols = [c for c in FEATURE_COLUMNS if c in df_features.columns]
+        X = df_features[feat_cols].fillna(0).to_numpy(dtype=np.float32)
 
-        # Class predictions
+        # 1. Authoritative Class Predictions directly from ML Model
         raw_preds = self.model.predict(X)
 
-        # Probabilities
+        # 2. Probability & Confidence Calculation
         if hasattr(self.model, "predict_proba"):
             probs = self.model.predict_proba(X)
-            confidences = np.max(probs, axis=1) * 100
+            confidences = np.max(probs, axis=1) * 100.0
         else:
             confidences = np.ones(len(raw_preds)) * 95.0
 
@@ -148,78 +155,30 @@ class ThreatInferenceEngine:
 
         results = []
         for i in range(len(raw_preds)):
-            pred_lbl = raw_preds[i]
-            conf = confidences[i]
-            anom = anomaly_scores[i]
-            f_row = df_features.iloc[i]
-
-            # Domain-Specific Signature Escalation
-            if f_row.get("has_sql_semantics", 0) == 1.0:
-                pred_lbl = "sqli"
-                conf = max(conf, 96.0)
-            elif f_row.get("has_script_semantics", 0) == 1.0:
-                pred_lbl = "xss"
-                conf = max(conf, 96.0)
-            elif f_row.get("has_traversal_semantics", 0) == 1.0:
-                pred_lbl = "path_traversal"
-                conf = max(conf, 96.0)
-            elif f_row.get("has_command_semantics", 0) == 1.0:
-                pred_lbl = "command_injection"
-                conf = max(conf, 96.0)
-            elif f_row.get("has_internal_ip_semantics", 0) == 1.0:
-                pred_lbl = "ssrf"
-                conf = max(conf, 95.0)
-            elif f_row.get("is_known_scanner", 0) == 1.0:
-                pred_lbl = "mal_scanner"
-                conf = max(conf, 92.0)
-            elif f_row.get("failed_login_count", 0) >= 3.0:
-                pred_lbl = "brute_force"
-                conf = max(conf, 92.0)
-
-            # Endpoint-specific detection if cleaned telemetry is available
-            if df_clean is not None and hasattr(df_clean, "iloc") and i < len(df_clean):
-                r_res = str(df_clean.iloc[i].get("resource", "")).lower()
-                r_ua = str(df_clean.iloc[i].get("user_agent", "")).lower()
-                if any(fz in r_res for fz in [".env", ".git", "wp-config", "backup.sql", "phpmyadmin", "web.config", ".svn", ".ds_store", "server-status", "actuator", "swagger", "dump.rdb", "database.yml", "backup.", "console/"]):
-                    pred_lbl = "dir_fuzzing"
-                    conf = max(conf, 92.0)
-                elif any(ws in r_res for ws in ["shell.php", "cmd.php", "c99.php", "r57.php", "b374k.php", "wso.php", "eval=", "passthru("]):
-                    pred_lbl = "web_shell"
-                    conf = max(conf, 92.0)
-                elif f_row.get("requests_per_ip_1min", 0) > 8.0 and any(fl in r_ua for fl in ["slowloris", "flood", "loic"]):
-                    pred_lbl = "ddos_http_flood"
-                    conf = max(conf, 90.0)
+            pred_lbl = str(raw_preds[i])
+            conf = float(confidences[i])
+            anom = float(anomaly_scores[i])
 
             meta = ATTACK_METADATA.get(pred_lbl, {
-                "display_name": str(pred_lbl),
-                "severity": "Unknown",
-                "badge_color": "#6B7280",
-                "action": "Inspect Manually"
+                "display_name": pred_lbl.upper(),
+                "severity": "Medium" if pred_lbl != "benign" else "Low",
+                "badge_color": "#EF4444" if pred_lbl != "benign" else "#10B981",
+                "action": "Inspect Manually" if pred_lbl != "benign" else "Allow Request"
             })
 
-            # Zero-Day / Novel Anomaly rule
-            is_novel = bool(anom > 0.60 and (pred_lbl != "benign" or conf < 80.0))
-            
-            # If model classified as benign but anomaly score is exceptionally high (>0.60), flag as Novel Zero-Day threat
-            if is_novel and pred_lbl == "benign":
-                disp_name = "Zero-Day Novel Threat (High Anomaly)"
-                sev = "High"
-                act = "Quarantine Request & Inspect Novel Pattern"
-                is_atk = True
-            else:
-                disp_name = meta["display_name"]
-                sev = meta["severity"]
-                act = meta["action"]
-                is_atk = (pred_lbl != "benign")
+            # Check if flagged as an unsupervised anomaly by Isolation Forest (>0.55)
+            is_anomaly = bool(anom > 0.55)
+            is_atk = bool(pred_lbl != "benign")
 
             results.append({
                 "predicted_label": pred_lbl,
-                "display_name": disp_name,
-                "severity": sev,
-                "confidence_pct": round(float(conf), 2),
-                "anomaly_score": round(float(anom), 4),
-                "is_novel_anomaly": is_novel,
-                "recommended_action": act,
+                "display_name": meta["display_name"],
+                "severity": meta["severity"],
+                "badge_color": meta["badge_color"],
+                "confidence_pct": round(conf, 2),
+                "anomaly_score": round(anom, 4),
+                "is_anomaly": is_anomaly,
+                "recommended_action": meta["action"],
                 "is_attack": is_atk
             })
 

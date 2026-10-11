@@ -78,7 +78,8 @@ def generate_threat_audit_pdf(
     pdf.cell(60, 6, "Recommended SOC Action", border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 8.5)
-    attack_counts = df_results[df_results["is_attack"]]["display_name"].value_counts()
+    is_atk_mask = df_results["is_attack"].astype(bool) if "is_attack" in df_results.columns else pd.Series([False]*len(df_results))
+    attack_counts = df_results[is_atk_mask]["display_name"].value_counts() if not df_results.empty else pd.Series()
     
     if attack_counts.empty:
         pdf.cell(190, 6, "No malicious cyberattacks detected in current log stream.", border=1, align="C", new_x="LMARGIN", new_y="NEXT")
@@ -105,10 +106,12 @@ def generate_threat_audit_pdf(
     pdf.cell(60, 6, "Mitigation Directive", border=1, fill=True, new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 8.5)
-    if "ip_address" in df_results.columns and not df_results[df_results["is_attack"]].empty:
-        top_ips = df_results[df_results["is_attack"]]["ip_address"].value_counts().head(5)
+    ip_col = "ip_address" if "ip_address" in df_results.columns else "client_ip"
+    if ip_col in df_results.columns and not df_results[is_atk_mask].empty:
+        top_ips = df_results[is_atk_mask][ip_col].value_counts().head(5)
         for ip, cnt in top_ips.items():
-            primary = df_results[(df_results["ip_address"] == ip) & (df_results["is_attack"])]["display_name"].mode()[0]
+            matching_recs = df_results[(df_results[ip_col] == ip) & is_atk_mask]
+            primary = matching_recs["display_name"].mode()[0] if not matching_recs.empty else "Attack"
             pdf.cell(50, 6, str(ip), border=1)
             pdf.cell(35, 6, f"{cnt:,}", border=1, align="C")
             pdf.cell(45, 6, str(primary)[:22], border=1)
@@ -131,7 +134,7 @@ def generate_threat_audit_pdf(
     pdf.cell(20, 6, "Anomaly", border=1, fill=True, align="C", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 7.5)
-    sample_df = df_results[df_results["is_attack"]].head(10) if not df_results[df_results["is_attack"]].empty else df_results.head(5)
+    sample_df = df_results[is_atk_mask].head(10) if not df_results[is_atk_mask].empty else df_results.head(5)
     for _, r in sample_df.iterrows():
         res_text = str(r.get("resource", r.get("normalized_path", "/")))[:55]
         pdf.cell(15, 5.5, str(r.get("method", "GET")), border=1, align="C")
