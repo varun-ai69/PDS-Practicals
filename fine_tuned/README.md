@@ -166,18 +166,3 @@ python fine_tuned/scripts/train_finetuned.py
 # Step 3: Run head-to-head empirical evaluation against baseline
 python fine_tuned/scripts/evaluate_finetuned.py
 ```
-
----
-
-## 8. Academic Defense & Viva Q&A Guide
-
-When presenting this work to examiners or professors, use the following structured justifications:
-
-**Q: Did you modify the core practicals submitted for evaluation?**  
-*A: No. Practicals 1 through 10 remain 100% unmodified and compliant with the GTU syllabus. This research was conducted in an isolated sandbox (`fine_tuned/`) to demonstrate advanced root-cause analysis and industrial Hard Negative Mining.*
-
-**Q: Why did the baseline model generate 40% false alarms?**  
-*A: Forensic inspection revealed that vulnerability scanners in the synthetic training data had User-Agent lengths between 45 and 60 characters and targeted root paths (`path_depth <= 1`). In the balanced training set, random undersampling reduced benign root paths to only 1,066 samples while scanners had 28,549 samples (a 28:1 ratio). As a result, legitimate users hitting root URLs with standard shortened browser strings were misclassified as scanners.*
-
-**Q: Did you introduce hardcoded regex or if-else rules to fix this?**  
-*A: Absolutely not. The solution was implemented purely in the feature space through data stratification. We sampled 28,000 diverse benign logs across path depths from our master 143k training pool and added modern browser anchors (+1.5% total data delta), allowing the Random Forest trees to learn the distinction purely through statistical entropy splits.*
