@@ -3,8 +3,8 @@
 **Course:** Python for Data Science (`BE05000231_PDS`)  
 **Semester:** 5th Semester B.E. / B.Tech  
 **Topic:** Threat Actor Grouping, Temporal Time-Series Resampling, Multi-Dimensional Pivot Tables, and Bot / Internal IP Filtering  
-**Pipeline Ingestion:** Practical 6 Balanced Training Dataset ([`balanced_training_dataset.parquet`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%206/data/processed/balanced_training_dataset.parquet) — 165,000 records $\times$ 55 columns)  
-**Pipeline Hand-off:** Clean Wrangled Telemetry ([`wrangled_filtered_dataset.parquet`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%207/data/processed/wrangled_filtered_dataset.parquet)) feeds into Practical 8 (Data Visualization & EDA)  
+**Pipeline Ingestion:** Practical 6 Balanced Training Dataset ([balanced_training_dataset.parquet](../Practical%206/data/processed/balanced_training_dataset.parquet) — 275,000 records $\times$ 55 columns)  
+**Pipeline Hand-off:** Clean Wrangled Telemetry ([wrangled_filtered_dataset.parquet](data/processed/wrangled_filtered_dataset.parquet)) feeds into Practical 8 (Data Visualization & EDA)  
 
 ---
 
@@ -14,9 +14,9 @@
 To aggregate, reshape, and clean balanced cybersecurity telemetry for deeper operational security insights by grouping attack frequencies per client IP, resampling hourly and daily traffic patterns, constructing multi-dimensional pivot tables, and filtering out automated bot noise and internal RFC 1918 traffic.
 
 ### Objectives
-1. **Pipeline Continuity:** Ingest the 165,000-record balanced training dataset with full schema preserved from Practical 6 (`balanced_training_dataset.parquet`).
+1. **Pipeline Continuity:** Ingest the 275,000-record balanced training dataset with full schema preserved from Practical 6 (`balanced_training_dataset.parquet`).
 2. **Client IP Threat Profiling:** Group requests by `client_ip` to evaluate attack frequency, attack ratios, and mean Isolation Forest anomaly scores, identifying top persistent threat actors.
-3. **Temporal Time-Series Resampling:** Resample datetime telemetry into hourly (`1h`) and daily (`1D`) intervals to monitor volumetric arrival velocity and attack surges over time.
+3. **Temporal Time-Series Resampling:** Resample datetime telemetry into hourly (`1h`) and daily (`1D`) intervals to monitor volumetric arrival velocity and attack surges across the 48-hour timeline.
 4. **Multi-Dimensional Pivot Tables:** Cross-tabulate HTTP request methods (GET, POST, HEAD, etc.) and server status codes (200, 401, 403, 404, 500) against multi-class attack categories.
 5. **Operational Noise Filtering:** Filter out automated crawlers (`user_agent` inspection) and RFC 1918 private/loopback IPv4 ranges (`ipaddress.ip_address`), isolating clean external production telemetry.
 6. **Dual-Format Serialization:** Export wrangled and filtered datasets to CSV and Snappy-compressed Apache Parquet.
@@ -39,7 +39,7 @@ Raw web logs record discrete request events. To identify distributed intrusion c
 
 ### 2.2 Temporal Time-Series Resampling
 Security attacks occur in bursts. Using Pandas datetime indexing, discrete log records are resampled into continuous time bins:
-- **Hourly Resampling ($\Delta t = 1\text{h}$):** Captures high-frequency DDoS surges, brute-force campaigns, and nighttime scanning activity.
+- **Hourly Resampling ($\Delta t = 1\text{h}$):** Captures high-frequency DDoS surges, brute-force campaigns, and nighttime scanning activity across 48 discrete hourly intervals.
 - **Daily Resampling ($\Delta t = 1\text{D}$):** Tracks day-over-day operational threat baselines and multi-day scanning patterns.
 
 ---
@@ -64,8 +64,8 @@ Real-world SOC environments must filter non-malicious operational noise to focus
 Practical 7/
 ├── data/
 │   └── processed/
-│       ├── wrangled_filtered_dataset.csv         # Clean external telemetry after bot & internal IP exclusion (109.74 MB)
-│       └── wrangled_filtered_dataset.parquet     # Snappy-compressed Parquet (22.33 MB)
+│       ├── wrangled_filtered_dataset.csv         # Clean external telemetry after bot & internal IP exclusion (151.73 MB)
+│       └── wrangled_filtered_dataset.parquet     # Snappy-compressed Parquet (24.23 MB)
 ├── notebooks/
 │   └── Practical_07_Data_Wrangling.ipynb         # Interactive Jupyter notebook walkthrough
 ├── outputs/
@@ -99,10 +99,10 @@ Practical 7/
 | Metric | Result | Operational Significance |
 |---|---|---|
 | **Input Ingestion** | `balanced_training_dataset.parquet` | Full 55-column schema from Practical 6 |
-| **Total Records Ingested**| **165,000 records** | Perfectly equalized across all 11 classes (15k / class) |
-| **Unique Client IPs** | **2,647 unique IPs** | Rich international threat actor distribution |
-| **Datetime Range** | UTC Valid Timestamps | Continuous enterprise server operation |
-| **Processing Runtime** | **8.59 seconds** | High-throughput vectorized execution |
+| **Total Records Ingested**| **275,000 records** | Perfectly equalized across all 11 classes (25k / class) |
+| **Unique Client IPs** | **7,635 unique IPs** | Rich international threat actor distribution |
+| **Datetime Range** | UTC Valid Timestamps | Continuous 48-hour enterprise server timeline |
+| **Processing Runtime** | **13.04 seconds** | High-throughput vectorized execution |
 
 ---
 
@@ -110,16 +110,16 @@ Practical 7/
 
 | Client IP Address | Total Requests | Attack Count | Attack Ratio | Mean Anomaly Score |
 |---|---|---|---|---|
-| `185.220.61.77` | 1,184 | **1,182** | **99.83%** | 0.6382 |
-| `192.220.66.221`| 1,146 | **1,144** | **99.83%** | 0.6401 |
-| `198.51.100.45` | 1,020 | **1,018** | **99.80%** | 0.6214 |
-| `185.220.101.5` | 988 | **986** | **99.80%** | 0.6340 |
-| `45.33.32.156` | 945 | **942** | **99.68%** | 0.6277 |
-| `194.26.29.112` | 912 | **910** | **99.78%** | 0.6195 |
-| `162.247.74.200`| 894 | **891** | **99.66%** | 0.6253 |
-| `185.220.100.241`| 870 | **868** | **99.77%** | 0.6310 |
-| `171.25.193.20` | 845 | **842** | **99.65%** | 0.6208 |
-| `185.220.102.8` | 820 | **818** | **99.76%** | 0.6322 |
+| `45.146.164.27` | 4,250 | **4,182** | **98.40%** | 0.5240 |
+| `45.146.164.144`| 4,225 | **4,162** | **98.51%** | 0.5236 |
+| `45.146.164.21` | 4,224 | **4,150** | **98.25%** | 0.5242 |
+| `45.146.164.138`| 4,173 | **4,122** | **98.78%** | 0.5233 |
+| `45.146.164.139`| 4,198 | **4,120** | **98.14%** | 0.5240 |
+| `45.146.164.163`| 4,184 | **4,117** | **98.40%** | 0.5233 |
+| `194.26.29.167` | 2,568 | **2,568** | **100.00%** | 0.4989 |
+| `194.26.29.87`  | 2,525 | **2,525** | **100.00%** | 0.4994 |
+| `194.26.29.113` | 2,521 | **2,521** | **100.00%** | 0.4998 |
+| `194.26.29.17`  | 2,518 | **2,518** | **100.00%** | 0.5006 |
 
 ---
 
@@ -127,22 +127,22 @@ Practical 7/
 
 | Partition | Record Volume | Percentage | Operational Action |
 |---|---|---|---|
-| **Total Ingested Records** | 165,000 | 100.00% | Full balanced training matrix |
-| **Automated Crawlers & Bots** | 4,788 | 2.90% | Excluded via User-Agent signature matching |
-| **RFC 1918 / Loopback IPs** | 148 | 0.09% | Excluded via standard `ipaddress.is_private` check |
-| **Total Discarded Noise** | **4,924** | **2.98%** | Non-malicious background noise filtered |
-| **Clean External Telemetry** | **160,076** | **97.02%** | Exported to `wrangled_filtered_dataset.csv` |
+| **Total Ingested Records** | 275,000 | 100.00% | Full balanced training matrix |
+| **Automated Crawlers & Bots** | 15,151 | 5.51% | Excluded via User-Agent signature matching |
+| **RFC 1918 / Loopback IPs** | 6,403 | 2.33% | Excluded via standard `ipaddress.is_private` check |
+| **Total Discarded Noise** | **21,337** | **7.76%** | Non-malicious background noise filtered |
+| **Clean External Telemetry** | **253,663** | **92.24%** | Exported to `wrangled_filtered_dataset.csv` |
 
 ---
 
 ## 5. Publication-Quality Diagnostic Visualizations
 
-The pipeline generates 4 high-resolution diagnostic plots stored in [`outputs/plots/`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%207/outputs/plots):
+The pipeline generates 4 high-resolution diagnostic plots stored in [outputs/plots/](outputs/plots):
 
-1. **`ip_attack_frequency.png`**: Horizontal bar chart of the Top 10 high-frequency malicious IPs, demonstrating persistent threat actor concentrations.
-2. **`hourly_traffic_timeseries.png`**: Multi-line time-series chart showing total hourly traffic volume against malicious attack surges with area fill.
-3. **`request_type_by_label_pivot.png`**: Color-graded heatmap cross-tabulating HTTP methods (`GET`, `POST`, `HEAD`) against the 11 attack classes.
-4. **`bot_and_internal_ip_filtering.png`**: Waterfall bar chart quantifying the exclusion of automated bot crawlers and RFC 1918 internal IPs.
+1. **[ip_attack_frequency.png](outputs/plots/ip_attack_frequency.png)**: Horizontal bar chart of the Top 10 high-frequency malicious IPs, demonstrating persistent threat actor concentrations.
+2. **[hourly_traffic_timeseries.png](outputs/plots/hourly_traffic_timeseries.png)**: Multi-line time-series chart showing total hourly traffic volume against malicious attack surges with area fill.
+3. **[request_type_by_label_pivot.png](outputs/plots/request_type_by_label_pivot.png)**: Color-graded heatmap cross-tabulating HTTP methods (`GET`, `POST`, `HEAD`) against the 11 attack classes.
+4. **[bot_and_internal_ip_filtering.png](outputs/plots/bot_and_internal_ip_filtering.png)**: Waterfall bar chart quantifying the exclusion of automated bot crawlers and RFC 1918 internal IPs.
 
 ---
 
@@ -163,4 +163,4 @@ jupyter notebook "Practical 7/notebooks/Practical_07_Data_Wrangling.ipynb"
 ---
 
 ## 7. Pipeline Continuity to Practical 8
-The clean wrangled telemetry ([`wrangled_filtered_dataset.parquet`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%207/data/processed/wrangled_filtered_dataset.parquet)) and aggregated tables directly feed into **Practical 8: Data Visualization and Exploratory Data Analysis (EDA)** using Matplotlib, Seaborn, and Plotly.
+The clean wrangled telemetry ([wrangled_filtered_dataset.parquet](data/processed/wrangled_filtered_dataset.parquet) — 253,663 records) and aggregated tables directly feed into **Practical 8: Data Visualization and Exploratory Data Analysis (EDA)** using Matplotlib, Seaborn, and Plotly.

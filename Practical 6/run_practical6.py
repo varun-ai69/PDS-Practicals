@@ -9,12 +9,12 @@ Objective:
 Mitigate severe class imbalance without inducing target leakage or test partition bias.
 1. Ingest feature-engineered dataset from Practical 5 (featured_logs.parquet / .csv).
 2. Execute a stratified 80% / 20% train-test split BEFORE applying any resampling,
-   strictly locking the test partition (60,002 records) to guarantee zero data leakage.
+   strictly locking the test partition (100,000 records) to guarantee zero data leakage.
 3. Systematically evaluate 3 balancing methodologies on the training partition:
    - Random Under-Sampling (RUS)
    - Random Over-Sampling (ROS)
    - Synthetic Minority Over-sampling Technique (SMOTE)
-4. Synthesize the final balanced training dataset (165,000 records: exactly 15,000 per class across all 11 classes).
+4. Synthesize the final balanced training dataset (275,000 records: exactly 25,000 per class across all 11 classes).
 5. Export balanced training partitions and untouched test sets in CSV and Snappy-compressed Parquet.
 6. Generate 4 publication-quality diagnostic plots and a comprehensive technical audit report.
 """
@@ -25,6 +25,9 @@ import time
 import datetime
 from pathlib import Path
 from typing import Dict, Tuple, List, Any
+
+# Ensure unbuffered live logging
+sys.stdout.reconfigure(line_buffering=True)
 
 import pandas as pd
 import numpy as np
@@ -51,7 +54,6 @@ from src.features.feature_definitions import CANONICAL_FEATURE_NAMES
 # Input Files from Practical 5
 PRIMARY_INPUT_PQ = PRACTICAL5_PROCESSED / "featured_logs.parquet"
 PRIMARY_INPUT_CSV = PRACTICAL5_PROCESSED / "featured_logs.csv"
-EXTERNAL_INPUT_CSV = PRACTICAL5_PROCESSED / "elastic_featured_logs.csv"
 
 # Practical 6 Output Directories
 PROCESSED_DIR = PRACTICAL6_DIR / "data" / "processed"
@@ -150,7 +152,7 @@ def evaluate_resampling_strategies(df_train: pd.DataFrame) -> Tuple[Dict[str, pd
     # -------------------------------------------------------------------------
     # 2. Random Over-Sampling (ROS)
     # -------------------------------------------------------------------------
-    TARGET_PER_CLASS = 15000
+    TARGET_PER_CLASS = 25000
     print(f"\n[Experiment 2] Random Over-Sampling (ROS) -> Duplicating minority classes to {TARGET_PER_CLASS:,}...")
     t0 = time.time()
     ros_strategy = {c: TARGET_PER_CLASS for c in classes if orig_counts[c] < TARGET_PER_CLASS}
@@ -173,22 +175,18 @@ def evaluate_resampling_strategies(df_train: pd.DataFrame) -> Tuple[Dict[str, pd
     print(f"  * SMOTE complete in {t_smote:.2f}s! Records: {len(X_smote):,} (Novel manifold vectors created)")
 
     # -------------------------------------------------------------------------
-    # 4. Final Balanced Training Dataset (Fully Equalized 15,000 per class)
+    # 4. Final Balanced Training Dataset (Fully Equalized 25,000 per class)
     # -------------------------------------------------------------------------
-    print(f"\n[Final Synthesis] Creating Equalized Training Matrix: exactly {TARGET_PER_CLASS:,} per class (11 x 15,000 = 165,000 records)...")
-    # Take benign downsampled to 15,000 + all 10 minority attack classes synthesized to 15,000
+    print(f"\n[Final Synthesis] Creating Equalized Training Matrix: exactly {TARGET_PER_CLASS:,} per class (11 x {TARGET_PER_CLASS:,} = {11*TARGET_PER_CLASS:,} records)...")
     equalized_indices = []
-    # 1. Benign indices sampled randomly to TARGET_PER_CLASS
-    benign_mask = np.where(y_smote == "benign")[0]
     np.random.seed(42)
-    benign_subsample = np.random.choice(benign_mask, size=TARGET_PER_CLASS, replace=False)
-    equalized_indices.extend(benign_subsample)
-
-    # 2. Add all attack indices from y_smote (each is already exactly TARGET_PER_CLASS)
     for c in classes:
-        if c != "benign":
-            c_mask = np.where(y_smote == c)[0]
-            equalized_indices.extend(c_mask)
+        c_mask = np.where(y_smote == c)[0]
+        if len(c_mask) >= TARGET_PER_CLASS:
+            chosen = np.random.choice(c_mask, size=TARGET_PER_CLASS, replace=False)
+        else:
+            chosen = np.random.choice(c_mask, size=TARGET_PER_CLASS, replace=True)
+        equalized_indices.extend(chosen)
 
     equalized_indices = np.array(equalized_indices)
     np.random.shuffle(equalized_indices)
@@ -198,7 +196,7 @@ def evaluate_resampling_strategies(df_train: pd.DataFrame) -> Tuple[Dict[str, pd
     final_counts = pd.Series(y_final).value_counts().to_dict()
     print(f"  * Final Balanced Matrix: {len(X_final):,} rows, 11 classes perfectly equalized at {TARGET_PER_CLASS:,} rows/class!")
 
-    # Format into structured DataFrames
+    # Format comparison datasets
     df_rus = pd.DataFrame(X_rus, columns=FEATURE_COLUMNS)
     df_rus["label"] = y_rus
 
@@ -208,32 +206,23 @@ def evaluate_resampling_strategies(df_train: pd.DataFrame) -> Tuple[Dict[str, pd
     df_smote = pd.DataFrame(X_smote, columns=FEATURE_COLUMNS)
     df_smote["label"] = y_smote
 
-    # Retain metadata columns (client_ip, datetime_utc, request_method, user_agent, etc.)
+    # Aligned metadata synthesis
     meta_cols = [c for c in df_train.columns if c not in FEATURE_COLUMNS and c != "label"]
-    meta_df_orig = df_train[meta_cols]
+    class_meta_pools = {c: df_train[df_train["label"] == c][meta_cols].values for c in classes}
+    class_pool_lens = {c: len(class_meta_pools[c]) for c in classes}
     
-    # Vectorized fast metadata assignment:
-    orig_mask = equalized_indices < len(df_train)
-    synth_mask = ~orig_mask
-    
-    # Real records metadata
-    orig_real_indices = equalized_indices[orig_mask]
-    real_meta_df = meta_df_orig.iloc[orig_real_indices].reset_index(drop=True)
-    
-    # Synthetic records metadata (vectorized sample per class)
-    synth_indices = equalized_indices[synth_mask]
-    synth_classes = y_smote[synth_indices]
-    
-    synth_meta_dfs = []
-    for c in np.unique(synth_classes):
-        c_count = int(np.sum(synth_classes == c))
-        pool = df_train[df_train["label"] == c][meta_cols]
-        sampled_c = pool.sample(c_count, replace=True, random_state=42).reset_index(drop=True)
-        synth_meta_dfs.append(sampled_c)
-        
-    synth_meta_df = pd.concat(synth_meta_dfs, ignore_index=True) if synth_meta_dfs else pd.DataFrame(columns=meta_cols)
-    
-    df_meta_final = pd.concat([real_meta_df, synth_meta_df], ignore_index=True)
+    meta_train_arr = df_train[meta_cols].values
+    n_train_len = len(df_train)
+    final_meta_rows = []
+    for idx, c in zip(equalized_indices, y_final):
+        if idx < n_train_len:
+            final_meta_rows.append(meta_train_arr[idx])
+        else:
+            pool = class_meta_pools[c]
+            p_len = class_pool_lens[c]
+            final_meta_rows.append(pool[np.random.randint(0, p_len)])
+            
+    df_meta_final = pd.DataFrame(final_meta_rows, columns=meta_cols)
     df_feat_final = pd.DataFrame(X_final, columns=FEATURE_COLUMNS)
     df_final = pd.concat([df_meta_final, df_feat_final], axis=1)
     df_final["label"] = y_final
@@ -271,7 +260,7 @@ def export_datasets(datasets: Dict[str, pd.DataFrame]) -> None:
     print("   STEP 3: SERIALIZING BALANCED DATASETS (CSV & PARQUET)")
     print("=" * 75)
 
-    # 1. Primary Final Balanced Dataset (165,000 records)
+    # 1. Primary Final Balanced Dataset (275,000 records)
     out_final_csv = PROCESSED_DIR / "balanced_training_dataset.csv"
     out_final_pq = PROCESSED_DIR / "balanced_training_dataset.parquet"
     datasets["final_balanced"].to_csv(out_final_csv, index=False)
@@ -279,12 +268,13 @@ def export_datasets(datasets: Dict[str, pd.DataFrame]) -> None:
     print(f"  * [PRIMARY] Saved balanced_training_dataset.csv     : {out_final_csv.stat().st_size / (1024*1024):.2f} MB")
     print(f"  * [PRIMARY] Saved balanced_training_dataset.parquet : {out_final_pq.stat().st_size / (1024*1024):.2f} MB")
 
-    # 2. Full SMOTE Dataset (314,960 records)
+    # 2. Full SMOTE Dataset
     out_smote_csv = PROCESSED_DIR / "balanced_train_smote.csv"
     out_smote_pq = PROCESSED_DIR / "balanced_train_smote.parquet"
     datasets["smote"].to_csv(out_smote_csv, index=False)
     datasets["smote"].to_parquet(out_smote_pq, index=False, compression="snappy")
     print(f"  * Saved balanced_train_smote.csv                   : {out_smote_csv.stat().st_size / (1024*1024):.2f} MB")
+    print(f"  * Saved balanced_train_smote.parquet               : {out_smote_pq.stat().st_size / (1024*1024):.2f} MB")
 
     # 3. Random Over-sampled Dataset
     out_ros_csv = PROCESSED_DIR / "balanced_train_random_oversampled.csv"
@@ -295,25 +285,6 @@ def export_datasets(datasets: Dict[str, pd.DataFrame]) -> None:
     out_rus_csv = PROCESSED_DIR / "balanced_train_undersampled.csv"
     datasets["rus"].to_csv(out_rus_csv, index=False)
     print(f"  * Saved balanced_train_undersampled.csv            : {out_rus_csv.stat().st_size / (1024*1024):.2f} MB")
-
-    # 5. External Benchmark Partitioning (Elastic Logs)
-    if EXTERNAL_INPUT_CSV.exists():
-        print(f"\n[External Benchmark] Partitioning Elastic production logs ({EXTERNAL_INPUT_CSV.name})...")
-        df_ext = pd.read_csv(EXTERNAL_INPUT_CSV)
-        ext_train_idx, ext_test_idx = train_test_split(
-            np.arange(len(df_ext)),
-            test_size=0.20,
-            random_state=42
-        )
-        ext_train = df_ext.iloc[ext_train_idx]
-        ext_test = df_ext.iloc[ext_test_idx]
-
-        out_ext_train = PROCESSED_DIR / "elastic_train_dataset.csv"
-        out_ext_test = PROCESSED_DIR / "elastic_test_dataset.csv"
-        ext_train.to_csv(out_ext_train, index=False)
-        ext_test.to_csv(out_ext_test, index=False)
-        print(f"  * Saved Elastic Train (8,000 rows): {out_ext_train.name}")
-        print(f"  * Saved Elastic Test  (2,000 rows): {out_ext_test.name}")
 
 
 # -----------------------------------------------------------------------------
@@ -411,11 +382,9 @@ def generate_balancing_plots(df_train: pd.DataFrame, df_test: pd.DataFrame, metr
 
     # Plot 4: 2D PCA SMOTE Manifold Interpolation (Original vs Synthetic Points)
     fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
-    # Filter on command_injection (the smallest minority class)
     ci_orig = X_orig[y_orig == "command_injection"]
     ci_final = df_final[df_final["label"] == "command_injection"][FEATURE_COLUMNS].values
 
-    # Project with PCA fitted on combined command injection vectors
     pca = PCA(n_components=2, random_state=42)
     scaler = StandardScaler()
     ci_combined = np.vstack([ci_orig, ci_final])
@@ -423,7 +392,7 @@ def generate_balancing_plots(df_train: pd.DataFrame, df_test: pd.DataFrame, metr
 
     n_orig = len(ci_orig)
     orig_pca = ci_pca[:n_orig]
-    synth_pca = ci_pca[n_orig + n_orig:]  # The purely newly synthesized instances
+    synth_pca = ci_pca[n_orig + n_orig:]
 
     ax.scatter(orig_pca[:, 0], orig_pca[:, 1], c="#2563EB", alpha=0.6, s=20, label=f"Original Training Points ({n_orig:,})")
     if len(synth_pca) > 0:
@@ -445,7 +414,7 @@ def generate_balancing_plots(df_train: pd.DataFrame, df_test: pd.DataFrame, metr
 # -----------------------------------------------------------------------------
 # STEP 5: COMPREHENSIVE TECHNICAL AUDIT REPORT
 # -----------------------------------------------------------------------------
-def generate_balancing_reports(metrics: Dict[str, Any]) -> None:
+def generate_balancing_reports(metrics: Dict[str, Any], total_rows: int, train_rows: int, test_rows: int) -> None:
     """Generates the comparison CSV and technical audit report."""
     print("\n" + "=" * 75)
     print("   STEP 5: COMPILING TECHNICAL AUDIT REPORTS")
@@ -480,10 +449,10 @@ def generate_balancing_reports(metrics: Dict[str, Any]) -> None:
         f.write("-" * 80 + "\n")
         f.write("Split Protocol              : Stratified train_test_split (80% Train / 20% Test)\n")
         f.write("Zero Data Leakage Check     : PASS (Resampling executed STRICTLY on training split)\n")
-        f.write("Total Dataset Records       : 300,010\n")
-        f.write("Training Split Records      : 240,008 (80.00%)\n")
-        f.write("Test Split Records (Locked) : 60,002 (20.00%)\n")
-        f.write("Target Features Resampled   : 31 (30 Canonical Features + Anomaly Score)\n\n")
+        f.write(f"Total Dataset Records       : {total_rows:,}\n")
+        f.write(f"Training Split Records      : {train_rows:,} (80.00%)\n")
+        f.write(f"Test Split Records (Locked) : {test_rows:,} (20.00%)\n")
+        f.write(f"Target Features Resampled   : {len(FEATURE_COLUMNS)} (30 Canonical Features + Anomaly Score)\n\n")
 
         f.write("-" * 80 + "\n")
         f.write("2. RESAMPLING METHODOLOGY BENCHMARK COMPARISON\n")
@@ -501,7 +470,7 @@ def generate_balancing_reports(metrics: Dict[str, Any]) -> None:
         f.write(f"Method 3: SMOTE (k-Nearest Neighbors Interpolation) [SELECTED FINAL METHOD]\n")
         f.write(f"  * Runtime     : {metrics['runtime']['smote']} seconds\n")
         f.write(f"  * Total Rows  : {sum(metrics['final_counts'].values()):,}\n")
-        f.write(f"  * Per Class   : Exactly 15,000 records per class across all 11 classes (1:1:1:1:1:1:1:1:1:1:1)\n")
+        f.write(f"  * Per Class   : Exactly 25,000 records per class across all 11 classes (1:1:1:1:1:1:1:1:1:1:1)\n")
         f.write(f"  * Advantage   : Synthesizes mathematically novel feature vectors along k-NN manifolds.\n\n")
 
         f.write("-" * 80 + "\n")
@@ -542,7 +511,12 @@ def main():
     generate_balancing_plots(df_train, df_test, metrics, X_orig, y_orig, datasets["final_balanced"])
 
     # Step 5: Reports
-    generate_balancing_reports(metrics)
+    generate_balancing_reports(
+        metrics,
+        total_rows=len(df_train) + len(df_test),
+        train_rows=len(df_train),
+        test_rows=len(df_test)
+    )
 
     total_time = round(time.time() - t_start, 2)
     print("\n" + "=" * 75)

@@ -3,7 +3,7 @@
 **Course:** Python for Data Science (`BE05000231_PDS`)  
 **Semester:** 5th Semester B.E. / B.Tech  
 **Topic:** Visual Security Analytics, Temporal Traffic Profiling, Heatmaps, and Interactive Dashboards using Matplotlib, Seaborn, and Plotly  
-**Pipeline Ingestion:** Practical 7 Clean Wrangled Telemetry ([`wrangled_filtered_dataset.parquet`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%207/data/processed/wrangled_filtered_dataset.parquet) — 160,076 records $\times$ 55 columns)  
+**Pipeline Ingestion:** Practical 7 Clean Wrangled Telemetry ([`wrangled_filtered_dataset.parquet`](../Practical%207/data/processed/wrangled_filtered_dataset.parquet) — 253,663 records $\times$ 55 columns)  
 **Pipeline Hand-off:** Prepares Exploratory Ground Truth and Feature Baselines for Practical 9 (Supervised Machine Learning Model Training & Evaluation)  
 
 ---
@@ -84,47 +84,49 @@ Practical 8/
 | Metric | Result | Operational Significance |
 |---|---|---|
 | **Input Ingestion** | `wrangled_filtered_dataset.parquet` | Clean external operational telemetry from Practical 7 |
-| **Total Records Analyzed** | **160,076 records** | Post-bot and internal IP filtered dataset |
-| **Unique Client IPs** | **2,619 unique IPs** | Filtered public threat actors |
+| **Total Records Analyzed** | **253,663 records** | Post-bot and internal IP filtered telemetry dataset |
+| **Unique Client IPs** | **5,340 unique IPs** | Identified public telemetry actors |
 | **Attack Classes Evaluated**| **11 discrete classes** | Multi-class attack coverage |
-| **Execution Runtime** | **3.41 seconds** | High-speed vectorized visualization generation |
+| **Peak Hourly Traffic Arrival Rate** | **9,407 requests/hour** | System maximum burst velocity |
+| **Peak Hourly Attack Volume** | **8,944 attacks/hour** | Maximum concurrent malicious surge velocity |
+| **Execution Runtime** | **4.85 seconds** | High-speed vectorized visualization generation |
 
 ---
 
 ### 4.2 Top 10 Malicious Threat Actors Identified
 
-| Rank | Client IP Address | Attack Volume | Total Requests | Dominant Attack Vector |
+| Rank | Client IP Address | Attack Volume | Total Requests | Dominant Threat Profile |
 |---|---|---|---|---|
-| 1 | `192.220.66.221` | **1,144** | 1,146 | Web Shell / Remote Code Execution |
-| 2 | `198.51.100.45` | **1,018** | 1,020 | SSRF Probes |
-| 3 | `185.220.101.5` | **986** | 988 | SQL Injection |
-| 4 | `45.33.32.156` | **942** | 945 | Directory Fuzzing |
-| 5 | `194.26.29.112` | **910** | 912 | Brute Force Authentication |
-| 6 | `162.247.74.200` | **891** | 894 | Cross-Site Scripting (XSS) |
-| 7 | `185.220.100.241`| **868** | 870 | Path Traversal |
-| 8 | `171.25.193.20` | **842** | 845 | DDoS HTTP Flood |
-| 9 | `185.220.102.8` | **818** | 820 | Vulnerability Scanners |
-| 10 | `185.220.101.7` | **798** | 800 | Command Injection |
+| 1 | `45.146.164.27` | **4,182** | 4,250 | High-frequency multi-vector automated exploits |
+| 2 | `45.146.164.144` | **4,162** | 4,225 | Coordinated external subnet scanning |
+| 3 | `45.146.164.21` | **4,150** | 4,224 | Web shell and path traversal fuzzing |
+| 4 | `45.146.164.138` | **4,122** | 4,173 | Command injection & SQL injection probe |
+| 5 | `45.146.164.139` | **4,120** | 4,198 | High-density injection & scanning burst |
+| 6 | `45.146.164.163` | **4,117** | 4,184 | Automated credential stuffing & fuzzing |
+| 7 | `194.26.29.167` | **2,568** | 2,568 | 100% malicious exploit scanner probe |
+| 8 | `194.26.29.87` | **2,525** | 2,525 | 100% malicious exploit scanner probe |
+| 9 | `194.26.29.113` | **2,521** | 2,521 | 100% malicious exploit scanner probe |
+| 10 | `194.26.29.17` | **2,518** | 2,518 | 100% malicious exploit scanner probe |
 
 ---
 
 ## 5. Visual Artifacts Inventory
 
 ### 5.1 Static Publication-Quality PNG Plots (`outputs/plots/`)
-1. **`01_requests_per_hour.png`**: Multi-line time-series chart showing total hourly request arrival velocity against malicious attack surges with area fill.
-2. **`02_top10_attacking_ips.png`**: Horizontal bar chart ranking top threat actor IPs by volume with text callouts.
-3. **`03_attack_categories_over_time.png`**: Multi-line temporal plot showing how different attack vectors (SQLi, XSS, DDoS) peak at different time intervals.
-4. **`04_status_code_distribution.png`**: Dual-panel figure featuring HTTP status code frequencies (bar chart) and HTTP class distribution (donut chart).
-5. **`05_ip_vs_request_type_heatmap.png`**: High-density color-graded crosstab heatmap cross-referencing top 20 client IPs with HTTP request methods.
-6. **`06_attack_class_distribution.png`**: Balanced representation bar chart across all 11 classes.
-7. **`07_feature_correlation_heatmap.png`**: Pearson cross-correlation matrix across canonical security features.
+1. **[`01_requests_per_hour.png`](outputs/plots/01_requests_per_hour.png)**: Multi-line time-series chart showing total hourly request arrival velocity against malicious attack surges with area fill.
+2. **[`02_top10_attacking_ips.png`](outputs/plots/02_top10_attacking_ips.png)**: Horizontal bar chart ranking top threat actor IPs by volume with text callouts.
+3. **[`03_attack_categories_over_time.png`](outputs/plots/03_attack_categories_over_time.png)**: Multi-line temporal plot showing how different attack vectors peak across time intervals.
+4. **[`04_status_code_distribution.png`](outputs/plots/04_status_code_distribution.png)**: Dual-panel figure featuring HTTP status code frequencies (bar chart) and HTTP class distribution (donut chart).
+5. **[`05_ip_vs_request_type_heatmap.png`](outputs/plots/05_ip_vs_request_type_heatmap.png)**: High-density color-graded crosstab heatmap cross-referencing top 20 client IPs with HTTP request methods.
+6. **[`06_attack_class_distribution.png`](outputs/plots/06_attack_class_distribution.png)**: Balanced representation bar chart across all 11 classes.
+7. **[`07_feature_correlation_heatmap.png`](outputs/plots/07_feature_correlation_heatmap.png)**: Pearson cross-correlation matrix across canonical security features.
 
 ### 5.2 Standalone Interactive Plotly Dashboards (`outputs/interactive/`)
-- **`01_requests_per_hour.html`**: Interactive time-series explorer with pan, zoom, hover tooltips, and range slider.
-- **`02_top10_attacking_ips.html`**: Interactive horizontal bar chart with exact count tooltips.
-- **`03_attack_categories_over_time.html`**: Interactive multi-line chart with legend toggling per attack class.
-- **`04_status_code_distribution.html`**: Interactive donut chart with percentage breakdown.
-- **`05_ip_vs_request_type_heatmap.html`**: Interactive 2D heatmap with cell inspection coordinates.
+- **[`01_requests_per_hour.html`](outputs/interactive/01_requests_per_hour.html)**: Interactive time-series explorer with pan, zoom, hover tooltips, and range slider.
+- **[`02_top10_attacking_ips.html`](outputs/interactive/02_top10_attacking_ips.html)**: Interactive horizontal bar chart with exact count tooltips.
+- **[`03_attack_categories_over_time.html`](outputs/interactive/03_attack_categories_over_time.html)**: Interactive multi-line chart with legend toggling per attack class.
+- **[`04_status_code_distribution.html`](outputs/interactive/04_status_code_distribution.html)**: Interactive donut chart with percentage breakdown.
+- **[`05_ip_vs_request_type_heatmap.html`](outputs/interactive/05_ip_vs_request_type_heatmap.html)**: Interactive 2D heatmap with cell inspection coordinates.
 
 ---
 

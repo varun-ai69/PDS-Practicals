@@ -3,46 +3,46 @@
 ================================================================================
 
 Course         : Python for Data Science (BE05000231_PDS)
-Execution Date : 2026-10-09 05:50:46
+Execution Date : 2026-10-11 03:19:54
 
 --------------------------------------------------------------------------------
 1. INGESTION & DATASET INTEGRITY AUDIT
 --------------------------------------------------------------------------------
 Input Ingestion Path       : Practical 6/data/processed/balanced_training_dataset.parquet
-Total Balanced Records     : 165,000
-Input Class Balancing      : Perfectly equalized across all 11 classes (15,000 / class)
+Total Balanced Records     : 275,000
+Input Class Balancing      : Perfectly equalized across all 11 classes (25,000 / class)
 
 --------------------------------------------------------------------------------
 2. CLIENT IP ATTACK FREQUENCY AUDIT (TOP THREAT ACTORS)
 --------------------------------------------------------------------------------
 Client IP Address    | Total Hits   | Attacks    | Attack Rate  | Mean Anomaly
 --------------------------------------------------------------------------------
-185.220.61.77        |      1,186 |    1,182 |      99.66% |       0.4913
-192.220.66.221       |      1,149 |    1,144 |      99.56% |       0.4909
-196.220.24.102       |      1,158 |    1,138 |      98.27% |       0.4917
-193.220.105.230      |      1,156 |    1,137 |      98.36% |       0.4894
-191.220.222.17       |      1,129 |    1,111 |      98.41% |       0.4884
-192.220.231.245      |      1,135 |    1,104 |      97.27% |       0.4902
-198.220.106.238      |      1,104 |    1,099 |      99.55% |       0.4910
-196.220.241.126      |      1,101 |    1,095 |      99.46% |       0.4907
-197.220.85.214       |      1,095 |    1,095 |     100.00% |       0.4888
-185.220.247.72       |      1,078 |    1,078 |     100.00% |       0.4915
+45.146.164.27        |      4,250 |    4,182 |      98.40% |       0.5240
+45.146.164.144       |      4,225 |    4,162 |      98.51% |       0.5236
+45.146.164.21        |      4,224 |    4,150 |      98.25% |       0.5242
+45.146.164.138       |      4,173 |    4,122 |      98.78% |       0.5233
+45.146.164.139       |      4,198 |    4,120 |      98.14% |       0.5240
+45.146.164.163       |      4,184 |    4,117 |      98.40% |       0.5233
+194.26.29.167        |      2,568 |    2,568 |     100.00% |       0.4989
+194.26.29.87         |      2,525 |    2,525 |     100.00% |       0.4994
+194.26.29.113        |      2,521 |    2,521 |     100.00% |       0.4998
+194.26.29.17         |      2,518 |    2,518 |     100.00% |       0.5006
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 3. TIME-SERIES RESAMPLING AUDIT
 --------------------------------------------------------------------------------
-Hourly Bins Resampled      : 42 intervals (outputs/aggregated/hourly_traffic.csv)
-Peak Hourly Traffic Volume : 45,364 requests/hour
-Peak Hourly Attack Volume  : 44,741 attacks/hour
+Hourly Bins Resampled      : 48 intervals (outputs/aggregated/hourly_traffic.csv)
+Peak Hourly Traffic Volume : 9,801 requests/hour
+Peak Hourly Attack Volume  : 9,203 attacks/hour
 
 --------------------------------------------------------------------------------
 4. BOT & RFC 1918 INTERNAL IP FILTERING AUDIT
 --------------------------------------------------------------------------------
-Total Records Before Filter: 165,000
-Automated Bots Excluded    : 4,788 (2.9%)
-Internal RFC 1918 Excluded : 148 (0.09%)
-Clean Operational Telemetry: 160,076 (97.02%)
+Total Records Before Filter: 275,000
+Automated Bots Excluded    : 15,151 (5.51%)
+Internal RFC 1918 Excluded : 6,403 (2.33%)
+Clean Operational Telemetry: 253,663 (92.24%)
 Clean Filtered Export Path : Practical 7/data/processed/wrangled_filtered_dataset.csv
 
 ================================================================================

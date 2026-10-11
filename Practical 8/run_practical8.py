@@ -23,6 +23,9 @@ import datetime
 from pathlib import Path
 from typing import Dict, Tuple, List, Any
 
+# Ensure unbuffered live logging
+sys.stdout.reconfigure(line_buffering=True)
+
 import pandas as pd
 import numpy as np
 import matplotlib

@@ -16,8 +16,8 @@ anomaly detection using Isolation Forest to identify outliers and malicious patt
    - 7 Temporal & Session Dynamics (Rolling 1-min & 5-min rates, failed logins)
    - 7 Network & Client Header Features (User-Agent entropy, bot flags)
 3. Train scikit-learn Isolation Forest to derive anomaly scores and outlier flags.
-4. Export featured datasets to CSV and Snappy-compressed Parquet.
-5. Benchmark on external real-world dataset (Elastic official production logs).
+4. Persist trained Isolation Forest and StandardScaler models to disk for downstream inference.
+5. Export featured datasets to CSV and Snappy-compressed Parquet.
 6. Generate publication-quality diagnostic plots and audit reports.
 """
 
@@ -34,6 +34,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+import joblib
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -58,23 +59,24 @@ from src.features.feature_definitions import (
 
 # Input Files from Practical 4
 PRIMARY_INPUT_CSV = PRACTICAL4_PROCESSED / "labeled_logs.csv"
-EXTERNAL_INPUT_CSV = PRACTICAL4_PROCESSED / "elastic_labeled_logs.csv"
 
 # Fallback to local data/raw if running standalone
 if not PRIMARY_INPUT_CSV.exists():
     PRIMARY_INPUT_CSV = PRACTICAL5_DIR / "data" / "raw" / "labeled_logs.csv"
-if not EXTERNAL_INPUT_CSV.exists():
-    EXTERNAL_INPUT_CSV = PRACTICAL5_DIR / "data" / "raw" / "elastic_labeled_logs.csv"
 
 # Outputs for Practical 5
 PROCESSED_DIR = PRACTICAL5_DIR / "data" / "processed"
 OUTPUTS_DIR = PRACTICAL5_DIR / "outputs"
 PLOTS_DIR = OUTPUTS_DIR / "plots"
 REPORTS_DIR = OUTPUTS_DIR / "reports"
+MODELS_DIR = OUTPUTS_DIR / "models"
+SRC_MODELS_DIR = WORKSPACE_DIR / "src" / "models"
 
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+SRC_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # -----------------------------------------------------------------------------
@@ -185,7 +187,7 @@ def extract_all_features(df: pd.DataFrame, dataset_name: str = "Primary") -> pd.
 # UNSUPERVISED ANOMALY DETECTION (ISOLATION FOREST)
 # -----------------------------------------------------------------------------
 def run_anomaly_detection(df: pd.DataFrame, dataset_name: str = "Primary") -> Tuple[pd.DataFrame, Dict[str, Any]]:
-    """Fits an unsupervised Isolation Forest on the 30 canonical features."""
+    """Fits an unsupervised Isolation Forest on the 30 canonical features and persists models."""
     t_start = time.time()
     print(f"[{dataset_name}] Training unsupervised Isolation Forest anomaly detector...")
 
@@ -215,6 +217,13 @@ def run_anomaly_detection(df: pd.DataFrame, dataset_name: str = "Primary") -> Tu
 
     df["anomaly_score"] = np.round(anomaly_scores, 4)
     df["is_anomaly"] = is_anomaly
+
+    # Persist physical models to disk for downstream inference (Practical 10 & Streamlit)
+    joblib.dump(iso, MODELS_DIR / "isolation_forest.joblib")
+    joblib.dump(scaler, MODELS_DIR / "scaler.joblib")
+    joblib.dump(iso, SRC_MODELS_DIR / "isolation_forest.joblib")
+    joblib.dump(scaler, SRC_MODELS_DIR / "scaler.joblib")
+    print(f"[{dataset_name}] Persisted isolation_forest.joblib and scaler.joblib to {MODELS_DIR} and {SRC_MODELS_DIR}!")
 
     # Calculate alignment with ground truth
     metrics: Dict[str, Any] = {
@@ -348,7 +357,7 @@ def generate_feature_plots(df: pd.DataFrame, metrics: Dict[str, Any]) -> None:
 # -----------------------------------------------------------------------------
 # AUDIT REPORT GENERATOR
 # -----------------------------------------------------------------------------
-def generate_audit_report(primary_metrics: Dict[str, Any], ext_metrics: Dict[str, Any]) -> Path:
+def generate_audit_report(primary_metrics: Dict[str, Any]) -> Path:
     """Generates a comprehensive scientific report of the feature extraction pipeline."""
     report_file = REPORTS_DIR / "practical5_feature_report.txt"
     with open(report_file, "w", encoding="utf-8") as f:
@@ -374,16 +383,7 @@ def generate_audit_report(primary_metrics: Dict[str, Any], ext_metrics: Dict[str
         for i, fname in enumerate(CANONICAL_FEATURE_NAMES, 1):
             f.write(f"  {i:>2}. {fname}\n")
 
-        f.write("\n" + "-" * 80 + "\n")
-        f.write("2. EXTERNAL PRODUCTION BENCHMARK AUDIT (Elastic Official Apache Logs)\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"Source External File     : elastic_labeled_logs.csv\n")
-        f.write(f"Total Lines Processed    : {ext_metrics['total_rows']:,}\n")
-        f.write(f"Flagged Outlier Records  : {ext_metrics['outlier_count']:,} ({ext_metrics['outlier_pct']}% Contamination)\n")
-        f.write(f"Mean Anomaly Score       : {ext_metrics['mean_anomaly_score']}\n")
-        f.write(f"Runtime                  : {ext_metrics['runtime_seconds']} seconds\n\n")
-
-        f.write("=" * 80 + "\n")
+        f.write("\n" + "=" * 80 + "\n")
         f.write("END OF PRACTICAL 5 FEATURE REPORT\n")
         f.write("=" * 80 + "\n")
 
@@ -426,28 +426,13 @@ def main():
     print(f"  * Saved Featured CSV     : {out_csv.name} ({out_csv.stat().st_size / (1024*1024):.2f} MB)")
     print(f"  * Saved Featured Parquet : {out_pq.name} ({out_pq.stat().st_size / (1024*1024):.2f} MB)")
 
-    # Step 5: External Benchmark Dataset
-    ext_metrics = {}
-    if EXTERNAL_INPUT_CSV.exists():
-        print(f"\n[Step 5] Benchmarking Pipeline on External Dataset: {EXTERNAL_INPUT_CSV.name}...")
-        df_ext = pd.read_csv(EXTERNAL_INPUT_CSV)
-        print(f"  * Ingested External: {len(df_ext):,} rows ({EXTERNAL_INPUT_CSV.stat().st_size / (1024*1024):.2f} MB)")
-        df_ext_featured = extract_all_features(df_ext, dataset_name="External_Elastic")
-        df_ext_featured, ext_metrics = run_anomaly_detection(df_ext_featured, dataset_name="External_Elastic")
-
-        out_ext_csv = PROCESSED_DIR / "elastic_featured_logs.csv"
-        df_ext_featured.to_csv(out_ext_csv, index=False)
-        print(f"  * Saved External Featured CSV: {out_ext_csv.name} ({out_ext_csv.stat().st_size / (1024*1024):.2f} MB)")
-    else:
-        print(f"\n[Step 5] External dataset not found at {EXTERNAL_INPUT_CSV}. Skipping benchmark.")
-
-    # Step 6: Visualizations
-    print("\n[Step 6] Generating Publication-Quality Diagnostic Plots...")
+    # Step 5: Visualizations
+    print("\n[Step 5] Generating Publication-Quality Diagnostic Plots...")
     generate_feature_plots(df_primary_featured, primary_metrics)
 
-    # Step 7: Audit Report
-    print("\n[Step 7] Compiling Feature Engineering Audit Report...")
-    report_path = generate_audit_report(primary_metrics, ext_metrics)
+    # Step 6: Audit Report
+    print("\n[Step 6] Compiling Feature Engineering Audit Report...")
+    report_path = generate_audit_report(primary_metrics)
     print(f"  * Report Saved  : {report_path}")
 
     print("\n" + "=" * 75)

@@ -23,6 +23,9 @@ import ipaddress
 from pathlib import Path
 from typing import Dict, Tuple, List, Any
 
+# Ensure live unbuffered logging
+sys.stdout.reconfigure(line_buffering=True)
+
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -396,7 +399,7 @@ def generate_wrangling_plots(top_attackers: pd.DataFrame, hourly_df: pd.DataFram
 # -----------------------------------------------------------------------------
 # STEP 7: COMPREHENSIVE TECHNICAL AUDIT REPORT
 # -----------------------------------------------------------------------------
-def generate_wrangling_reports(top_attackers: pd.DataFrame, hourly_df: pd.DataFrame, filter_stats: Dict[str, Any]) -> None:
+def generate_wrangling_reports(df: pd.DataFrame, top_attackers: pd.DataFrame, hourly_df: pd.DataFrame, filter_stats: Dict[str, Any]) -> None:
     """Compiles the final technical report for Practical 7."""
     print("\n[Step 7] Compiling Practical 7 Wrangling Audit Report...")
 
@@ -413,7 +416,7 @@ def generate_wrangling_reports(top_attackers: pd.DataFrame, hourly_df: pd.DataFr
         f.write("-" * 80 + "\n")
         f.write("Input Ingestion Path       : Practical 6/data/processed/balanced_training_dataset.parquet\n")
         f.write(f"Total Balanced Records     : {filter_stats['total_records']:,}\n")
-        f.write("Input Class Balancing      : Perfectly equalized across all 11 classes (15,000 / class)\n\n")
+        f.write(f"Input Class Balancing      : Perfectly equalized across all {df['label'].nunique()} classes ({len(df)//df['label'].nunique():,} / class)\n\n")
 
         f.write("-" * 80 + "\n")
         f.write("2. CLIENT IP ATTACK FREQUENCY AUDIT (TOP THREAT ACTORS)\n")
@@ -458,7 +461,7 @@ def main():
     pivot_req, pivot_status = construct_pivot_tables(df)
     filtered_df, filter_stats = execute_filtering_pipeline(df)
     generate_wrangling_plots(top_attackers, hourly_df, pivot_req, filter_stats)
-    generate_wrangling_reports(top_attackers, hourly_df, filter_stats)
+    generate_wrangling_reports(df, top_attackers, hourly_df, filter_stats)
 
     total_time = round(time.time() - t_start, 2)
     print("\n" + "=" * 75)

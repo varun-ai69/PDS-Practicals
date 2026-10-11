@@ -3,28 +3,27 @@
 **Course:** Python for Data Science (`BE05000231_PDS`)  
 **Semester:** 5th Semester B.E. / B.Tech  
 **Topic:** Canonical 30-Feature Extraction, Shannon Character Entropy, Temporal Session Dynamics, and Unsupervised Isolation Forest Outlier Scoring  
-**Pipeline Ingestion:** Practical 4 Ground-Truth Dataset ([`labeled_logs.csv`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%204/data/processed/labeled_logs.csv) — 300,010 records)  
-**External Benchmark Dataset:** Elastic Official Production Web Log ([`elastic_labeled_logs.csv`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%204/data/processed/elastic_labeled_logs.csv) — 10,000 records)  
-**Pipeline Hand-off:** Prepares Feature Matrices ($X$) and Target Vectors ($y$) for Practical 6 (Stratified Partitioning & SMOTE Balancing)  
+**Pipeline Ingestion:** Practical 4 Ground-Truth Dataset ([labeled_logs.csv](../Practical%204/data/processed/labeled_logs.csv) — 500,000 records)  
+**Pipeline Hand-off:** Prepares Feature Matrices ($X$) and Target Vectors ($y$) for Supervised Machine Learning in Practicals 6, 7, 8, and Real-Time Inference in Practical 10.  
 
 ---
 
 ## 1. Aim and Objectives
 
 ### Aim
-To extract mathematically grounded, non-leaky statistical, lexical, temporal, and behavioral features across 4 orthogonal dimensions from preprocessed web access logs, and execute unsupervised anomaly detection using an Isolation Forest to score and flag anomalous security events without label supervision.
+To extract mathematically grounded, non-leaky statistical, lexical, temporal, and behavioral features across 4 orthogonal dimensions from preprocessed web access logs, fit an unsupervised Isolation Forest to score and isolate anomalous security events without label supervision, and persist physical model artifacts for downstream inference.
 
 ### Objectives
-1. **Pipeline Continuity:** Ingest the labeled ground-truth dataset output from Practical 4 (`labeled_logs.csv`).
+1. **Pipeline Continuity:** Ingest the labeled ground-truth dataset output from Practical 4 (`labeled_logs.csv` — 500,000 records).
 2. **30 Canonical Feature Engineering:** Compute 30 numerical features across 4 orthogonal dimensions without target leakage:
    - **9 Lexical & Path Features:** URL length, path depth, query parameter counts, character distribution ratios, double slash counts, and percent encoding frequency.
    - **7 Payload Complexity & Semantics:** Payload length, Shannon character entropy, SQL, Script, Traversal, Command, and Internal IP semantic markers.
    - **7 Temporal & Session Dynamics:** Inter-request arrival delta ($\Delta t$), rolling 1-minute and 5-minute request velocities, burst ratios, 5-minute unique path counts, and failed login counts.
    - **7 Header & Network Telemetry:** HTTP status codes, error indicators, response byte size, User-Agent length, User-Agent Shannon entropy, scanner indicators, and bot indicators.
 3. **Unsupervised Outlier Isolation:** Fit a scikit-learn `IsolationForest` on standardized features to derive continuous `anomaly_score` metrics and binary `is_anomaly` flags.
-4. **Zero-Leakage Guarantee:** Ensure no heuristic rules or target labels are leaked into the feature space ($X$), preserving scientific validity for downstream machine learning.
-5. **Dual-Format Serialization:** Export the feature-engineered dataset to CSV and high-efficiency Snappy-compressed Apache Parquet.
-6. **External Production Benchmark:** Validate feature extraction speed and outlier detection precision on Elastic official production logs.
+4. **Physical Model Persistence:** Save trained `isolation_forest.joblib` and `scaler.joblib` models to disk for zero-mock, real-time scoring in Practical 10 and Streamlit.
+5. **Zero-Leakage Guarantee:** Ensure no heuristic rules or target labels are leaked into the feature space ($X$), preserving scientific validity for downstream machine learning.
+6. **Dual-Format Serialization:** Export the feature-engineered dataset to CSV and high-efficiency Snappy-compressed Apache Parquet.
 
 ---
 
@@ -34,7 +33,7 @@ To extract mathematically grounded, non-leaky statistical, lexical, temporal, an
 A common failure in academic machine learning pipelines is **circular data leakage**. When engineers create features by running the same regular expressions used for labeling (e.g., `feature_sqli = 1 if 'SELECT' in url`), the machine learning model in later practicals simply memorizes the heuristic rule. This produces an artificial $100\%$ accuracy during evaluation, while the model fails completely when confronted with zero-day attacks or novel obfuscations.
 
 Our architecture strictly separates concerns:
-- **Heuristics (Practical 4):** Determine the target label ($y$).
+- **Heuristics (Practical 4):** Determine the target ground-truth label ($y$).
 - **Features (Practical 5):** Compute strictly continuous mathematical and structural properties ($X$) such as character entropy, parameter counts, and temporal arrival velocity. **No target label or heuristic rule is ever passed to the feature matrix.**
 
 ```
@@ -67,7 +66,7 @@ Where:
 Network and brute-force attacks exhibit distinct temporal fingerprints:
 - **Inter-Request Time ($\Delta t$):** 
   $$\Delta t_k = t_k - t_{k-1}$$
-  Calculated per `client_ip`. Microscopic deltas ($\Delta t \le 0.04$s) indicate automated scripts or flood attacks.
+  Calculated per `client_ip`. Microscopic deltas ($\Delta t \le 0.1$s) indicate automated scripts or flood attacks.
 - **Rolling Window Request Velocity ($R_{1\text{min}}, R_{5\text{min}}$):** The number of requests originating from the same client IP over a sliding 1-minute and 5-minute datetime window.
 - **Burst Ratio ($\beta$):** 
   $$\beta = \frac{R_{1\text{min}}}{\max\left(1.0, \frac{R_{5\text{min}}}{5}\right)}$$
@@ -113,7 +112,7 @@ Where:
 | 14 | `has_traversal_semantics`| Payload | Binary indicator (`..`, `/etc/passwd`) | Flags file inclusion and path climbing attempts |
 | 15 | `has_command_semantics` | Payload | Binary indicator (`;`, `\|`, `wget`, `curl`) | Flags remote code execution and reverse shells |
 | 16 | `has_internal_ip_semantics`| Payload | Binary indicator (`127.0.0.1`, `169.254.`) | Flags Server-Side Request Forgery (SSRF) |
-| 17 | `inter_request_time` | Temporal | $\Delta t = t_k - t_{k-1}$ | Identifies automated volumetric floods ($\le 0.04$s) |
+| 17 | `inter_request_time` | Temporal | $\Delta t = t_k - t_{k-1}$ | Identifies automated volumetric floods |
 | 18 | `requests_per_ip_1min` | Temporal | Rolling 1-min count per IP | High-frequency burst detection |
 | 19 | `requests_per_ip_5min` | Temporal | Rolling 5-min count per IP | Sustained scanning and credential stuffing velocity |
 | 20 | `request_velocity_1sec` | Temporal | $\mathbb{I}(\Delta t \le 1.0)$ | Automated tool binary trigger |
@@ -136,12 +135,14 @@ Where:
 Practical 5/
 ├── data/
 │   └── processed/
-│       ├── featured_logs.csv                       # 300,010 records with 30 features + anomaly scores (240.41 MB)
-│       ├── featured_logs.parquet                   # Snappy-compressed columnar dataset (67.65 MB)
-│       └── elastic_featured_logs.csv               # 10,000 Elastic benchmark records with 30 features (4.95 MB)
+│       ├── featured_logs.csv                       # 500,000 records with 30 features + anomaly scores (277.86 MB / 264.99 MiB)
+│       └── featured_logs.parquet                   # Snappy-compressed columnar dataset (39.27 MB / 37.45 MiB)
 ├── notebooks/
 │   └── Practical_05_Feature_Engineering.ipynb     # Interactive Jupyter walkthrough with formulas & plots
 ├── outputs/
+│   ├── models/
+│   │   ├── isolation_forest.joblib                 # Trained Isolation Forest model (1.18 MB)
+│   │   └── scaler.joblib                           # Standard feature normalizer (1.3 KB)
 │   ├── plots/
 │   │   ├── feature_correlation_matrix.png          # Cross-correlation matrix of key canonical features
 │   │   ├── shannon_entropy_by_class.png            # Boxplot of Shannon entropy across attack classes
@@ -155,45 +156,33 @@ Practical 5/
 
 ---
 
-## 5. Empirical Verification & Benchmark Results
+## 5. Execution Results & Empirical Observations (500,000 Records)
 
-### 5.1 Primary Enterprise Dataset (300,010 Records)
 The pipeline was executed across the full master dataset ingested from Practical 4:
 
-| Metric | Result | Operational Significance |
+| Metric | Empirical Value | Operational Significance |
 |---|---|---|
-| **Input Ingestion** | `labeled_logs.csv` (300,010 rows, 25 cols) | Strict pipeline continuity from Practical 4 |
-| **Feature Extraction Time** | **14.07 seconds** | **21,322.7 rows / second** throughput |
-| **Canonical Features** | 30 features | Full orthogonal coverage (Lexical, Payload, Temporal, Network) |
+| **Input Ingestion** | `labeled_logs.csv` (500,000 rows, 25 cols) | Strict pipeline continuity from Practical 4 |
+| **Feature Extraction Time** | **22.23 seconds** | **22,492.1 rows / second** throughput |
+| **Canonical Features** | **30 features** | Full orthogonal coverage (Lexical, Payload, Temporal, Network) |
 | **Missing Values in Features** | **0 (0.00%)** | Imputed with mathematically sound defaults |
-| **Isolation Forest Fit Time** | **4.50 seconds** | 100 trees, 256 sub-samples, multi-threaded |
-| **Outliers Flagged** | **30,001 records (10.00%)** | Set at $10\%$ expected anomaly contamination |
-| **Mean Anomaly Score** | **0.4379** | Standardized anomaly baseline |
-| **Unsupervised ROC-AUC** | **0.9282** | High unsupervised separation between benign and malicious |
-| **Outlier Precision** | **87.54%** | $87.54\%$ of flagged outliers are confirmed ground-truth attacks |
-
-### 5.2 External Benchmark Audit (Elastic Production Web Logs)
-To verify generalizability, the same pipeline was executed against Elastic's official production web access log:
-
-| Metric | Elastic Benchmark Result |
-|---|---|
-| **Total Lines Processed** | 10,000 records |
-| **Feature Extraction Time** | 0.53 seconds (18,867.9 rows/sec) |
-| **Isolation Forest Fit Time** | 0.25 seconds |
-| **Outliers Flagged** | 1,000 records (10.00%) |
-| **Mean Anomaly Score** | 0.4158 |
-| **Exported Benchmark CSV** | `elastic_featured_logs.csv` (4.95 MB) |
+| **Isolation Forest Fit Time** | **7.09 seconds** | 100 trees, 256 sub-samples, multi-threaded |
+| **Outliers Flagged** | **50,000 records (10.00%)** | Set at $10\%$ expected anomaly contamination |
+| **Mean Anomaly Score** | **0.4362** | Standardized anomaly baseline |
+| **Unsupervised ROC-AUC** | **0.8113** | Strong unsupervised separation between benign and malicious |
+| **Outlier Precision** | **86.73%** | $86.73\%$ of flagged outliers are confirmed ground-truth attacks |
+| **Physical Model Artifacts** | `isolation_forest.joblib`, `scaler.joblib` | Persisted for zero-mock real-time inference in Practical 10 |
 
 ---
 
 ## 6. Publication-Quality Diagnostic Visualizations
 
-The pipeline generates 4 high-resolution diagnostic plots stored in [`outputs/plots/`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%205/outputs/plots):
+The pipeline generates 4 high-resolution diagnostic plots stored in [outputs/plots/](outputs/plots):
 
-1. **`feature_correlation_matrix.png`**: Cross-correlation heatmap confirming that canonical features exhibit low inter-correlation ($|r| < 0.65$), proving feature orthogonality.
-2. **`shannon_entropy_by_class.png`**: Demonstrates that malicious classes (e.g., `sqli`, `command_injection`, `web_shell`) exhibit significantly higher median Shannon entropy ($> 4.2$ bits/char) than benign traffic ($3.1$ bits/char).
-3. **`anomaly_score_distribution.png`**: Empirical probability density showing clear separation between benign traffic (centered at $0.38$) and attack traffic (shifted toward $0.55 - 0.70$).
-4. **`pca_anomaly_cluster_projection.png`**: Two-dimensional Principal Component Analysis projection illustrating how the Isolation Forest cleanly isolates outliers along the periphery of the primary operational cluster.
+1. **[feature_correlation_matrix.png](outputs/plots/feature_correlation_matrix.png)**: Cross-correlation heatmap confirming that canonical features exhibit low inter-correlation ($|r| < 0.65$), proving feature orthogonality.
+2. **[shannon_entropy_by_class.png](outputs/plots/shannon_entropy_by_class.png)**: Demonstrates that malicious classes (e.g., `sqli`, `command_injection`, `web_shell`) exhibit significantly higher median Shannon entropy ($> 4.2$ bits/char) than benign traffic ($3.1$ bits/char).
+3. **[anomaly_score_distribution.png](outputs/plots/anomaly_score_distribution.png)**: Empirical probability density showing clear separation between benign traffic and attack traffic.
+4. **[pca_anomaly_cluster_projection.png](outputs/plots/pca_anomaly_cluster_projection.png)**: Two-dimensional Principal Component Analysis projection illustrating how the Isolation Forest cleanly isolates outliers along the periphery of the primary operational cluster.
 
 ---
 
@@ -214,7 +203,7 @@ jupyter notebook "Practical 5/notebooks/Practical_05_Feature_Engineering.ipynb"
 ---
 
 ## 8. Pipeline Continuity to Practical 6
-The generated datasets ([`featured_logs.csv`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%205/data/processed/featured_logs.csv) and [`featured_logs.parquet`](file:///c:/Users/Asus%20f15/PDS-Practicals/Practical%205/data/processed/featured_logs.parquet)) are pre-configured for direct consumption in **Practical 6: Data Splitting, Resampling & Imbalance Handling**:
+The generated datasets ([featured_logs.csv](data/processed/featured_logs.csv) and [featured_logs.parquet](data/processed/featured_logs.parquet)) and saved model artifacts are pre-configured for direct consumption in **Practical 6: Logistic Regression Baseline & Splitting**:
 - 30 numerical input features ($X$) aligned with `CANONICAL_FEATURE_NAMES`.
 - Ground-truth target column `label` (multi-class) and `is_attack` (binary).
-- Ready for stratified 80/20 train/test partitioning, pipeline-safe standard scaling, and SMOTE class balancing.
+- Ready for stratified 80/20 train/test partitioning, pipeline-safe standard scaling, and model training.
