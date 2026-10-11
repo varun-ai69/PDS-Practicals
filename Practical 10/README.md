@@ -1,197 +1,221 @@
-# Practical 10: End-to-End Reusable Web Log Inference Pipeline & Master Threat Hunter GUI
+# Practical 10: Interactive Threat Intelligence & Autonomous Model Deployment Platform
 
 **Course:** Python for Data Science (`BE05000231_PDS`)  
 **Semester:** 5th Semester B.E. / B.Tech  
 **Academic Term:** 2023–24 GTU-GSET  
-**Topic:** Production Inference Pipeline, Real-Time Web Telemetry Forensics, Multi-Model Threat Hunter Dashboard & Executive Audit Reporting  
+**Topic:** Next.js SOC Dashboard, FastAPI Telemetry Backend, Isolation Forest Anomaly Engine, Multi-Class ML Inference, SQLite Audit Persistence & Executive PDF Export  
 
 ---
 
-## 1. AIM & OBJECTIVES
+## 1. Aim & Objectives
 
 ### Aim
-To design, implement, and deploy an end-to-end, reusable, multi-stage machine learning inference pipeline and an interactive executive web dashboard (Streamlit) for automated parsing, feature extraction, threat classification, zero-day anomaly detection, and publication-ready PDF audit reporting on raw server access logs.
+To engineer, integrate, and deploy a production-grade, end-to-end cyber threat intelligence platform consisting of a high-performance **FastAPI** machine learning service and an executive **Next.js** Security Operations Center (SOC) dashboard. The platform ingests raw HTTP web access logs, executes a 5-stage ML pipeline, performs unsupervised Isolation Forest anomaly scoring, classifies threats using physical scikit-learn champion models with **zero regex overrides**, persists all telemetry runs to an **SQLite database**, and generates publication-ready executive PDF audit reports with a single click.
 
 ### Objectives
-1. **Pipeline Modularity & Continuity:** Ingest raw server access logs and process them seamlessly through the exact sequential transformations engineered across Practicals 1 to 9 (Parsing $\to$ Cleaning $\to$ 31-D Feature Extraction $\to$ Classifier Inference).
-2. **Multi-Format Log Parser:** Support arbitrary web server log formats without schema friction, including Apache Combined Log Format, Apache Common, Nginx access logs, JSON Lines telemetry, and raw HTTP request lines.
-3. **High-Dimensional Feature Engineering:** Compute all 30 canonical cybersecurity features plus an unsupervised Isolation Forest anomaly score spanning lexical, semantic, velocity, and network dimensions.
-4. **Multi-Model Support:** Enable dynamic switching between the top 3 production classifiers trained in Practical 9:
-   - **Random Forest Ensemble (Champion):** 98.36% Accuracy, 99.70% Macro Recall, 150 Estimators, Entropy criterion.
-   - **Decision Tree (Tuned Fast):** 98.96% Accuracy, 99.64% Macro Recall, Depth=20, sub-millisecond latency.
-   - **Logistic Regression (Linear Baseline):** 95.31% Accuracy, 97.69% Macro Recall, L2 regularized.
-5. **Request-by-Request Forensic Analysis:** Provide granular classification for every incoming request, identifying legitimate traffic, specific attack categories (SQLi, XSS, Path Traversal, Command Injection, Brute Force, Scanners), and novel zero-day threats via anomaly scores.
-6. **False Alarm Management & SOC Feedback:** Implement an analyst feedback loop permitting security operators to flag false alarms with immediate alert feedback and state updates.
-7. **Automated Executive PDF Audit Reporting:** Generate 1-click downloadable publication-ready PDF incident reports summarizing attack distributions, top threat actor IPs, sample detections, and actionable mitigation directives.
-8. **Minimalist, Premium SOC Aesthetics:** Present a clean, dark-themed user interface utilizing zinc and slate palettes, avoiding harsh or garish neon AI color schemes.
+1. **Pipeline Continuity (Practicals 1 to 9):** Ingest raw server access logs and execute the authentic pipeline transformations:
+   $$\text{Ingestion (P1)} \to \text{CLF Lexer (P2)} \to \text{Sanitization (P3)} \to \text{30 Features + Isolation Forest (P5)} \to \text{Champion ML Inference (P9)}$$
+2. **Strict Zero Heuristics & Zero RegEx Overrides:** Completely eliminate legacy mock formulas, heuristic keyword overrides, and hardcoded pattern escalations. Classification decisions are 100% computed from the 30-feature vector and physical scikit-learn models.
+3. **Executive Next.js Frontend:** Modern, responsive, minimalist SOC dashboard built with Next.js 16, TypeScript, and Tailwind CSS. Strictly **ZERO emojis** throughout the user interface, utilizing clean Lucide SVG icons.
+4. **Persistent SQLite Telemetry Store:** Save every ingested log stream and every classified request into a local relational database (`data/telemetry.db`) with relational schema mapping (`runs` and `classified_requests` tables).
+5. **Interactive Model Switching & Real Benchmarks:** Support on-the-fly switching between the models trained in Practical 9:
+   - **Random Forest Ensemble (Champion):** 98.72% Accuracy, 99.62% Macro Recall, 150 bagged trees, entropy criterion.
+   - **Decision Tree (Tuned Fast):** 99.01% Accuracy, 99.58% Macro Recall, depth=20, sub-millisecond line-rate latency.
+6. **Executive PDF Audit Export:** One-click automated report generation compiling incident summaries, attack rate percentages, top malicious source IPs, anomaly distributions, and WAF mitigation directives.
 
 ---
 
-## 2. FORENSIC PIPELINE ARCHITECTURE
+## 2. Platform Architecture
 
-The Practical 10 inference engine operates as a strictly decoupled 4-stage pipeline:
-
-```
-                  ┌─────────────────────────────────────────────────────────┐
-                  │            RAW INCOMING SERVER TELEMETRY                │
-                  │  (Apache Combined / Nginx / JSON Lines / Raw HTTP Lines) │
-                  └───────────────────────────┬─────────────────────────────┘
-                                              │
-                                              ▼
-                  ┌─────────────────────────────────────────────────────────┐
-                  │      STAGE 1: MULTI-FORMAT REGEX & JSON PARSER          │
-                  │  (pipeline/log_parser.py)                               │
-                  │  • Apache Combined regex tokenization                   │
-                  │  • JSON-line key-value mapping                          │
-                  │  • Raw HTTP request verb/URI decomposition              │
-                  │  • Standardized 13-field forensic schema mapping        │
-                  └───────────────────────────┬─────────────────────────────┘
-                                              │
-                                              ▼
-                  ┌─────────────────────────────────────────────────────────┐
-                  │       STAGE 2: DATA CLEANING & NORMALIZATION            │
-                  │  (pipeline/preprocessor.py)                             │
-                  │  • URL decoding (%20 -> space, %27 -> ', %3C -> <)     │
-                  │  • URI path normalization and query string isolation    │
-                  │  • Status code & byte volume numerical coercion         │
-                  │  • Missing User-Agent and Referer header imputation     │
-                  └───────────────────────────┬─────────────────────────────┘
-                                              │
-                                              ▼
-                  ┌─────────────────────────────────────────────────────────┐
-                  │      STAGE 3: 31-D HIGH-DIMENSIONAL FEATURE EXTRACTION  │
-                  │  (pipeline/feature_extractor.py)                        │
-                  │  • Lexical & Structural: Length, entropy, depth (9 feats│
-                  │  • Payload Semantics: SQL, script, traversal, cmd (7)   │
-                  │  • Temporal & Velocity: Sliding-window rates, burst (7) │
-                  │  • Headers & Anomaly: UA entropy, bot, Isolation Forest │
-                  └───────────────────────────┬─────────────────────────────┘
-                                              │
-                                              ▼
-                  ┌─────────────────────────────────────────────────────────┐
-                  │     STAGE 4: MULTI-MODEL INFERENCE & ZERO-DAY FILTER    │
-                  │  (pipeline/inference_engine.py)                         │
-                  │  • Serialized model loading (Practical 9 model artifacts│
-                  │  • Multi-class threat classification & probability conf │
-                  │  • Isolation Forest zero-day anomaly gating             │
-                  │  • Automated SOC mitigation directive mapping           │
-                  └───────────────────────────┬─────────────────────────────┘
-                                              │
-                                              ▼
-                  ┌─────────────────────────────────────────────────────────┐
-                  │        STAGE 5: PRESENTATION, ALERTS & REPORTING        │
-                  │  • Interactive Streamlit Threat Hunter GUI (app.py)     │
-                  │  • False Alarm Override & Active Incident Alert Banner  │
-                  │  • 1-Click Executive PDF Threat Audit Generator (FPDF2) │
-                  └─────────────────────────────────────────────────────────┘
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│                        NEXT.JS 16 SOC FRONTEND                         │
+│                    (http://localhost:3000 - Web UI)                    │
+│  • Dark Slate SOC Aesthetic            • Zero Emojis (Lucide Icons)    │
+│  • Drag & Drop Telemetry Buffer        • Interactive Attack Meters     │
+│  • Top Malicious IPs Drilldown         • Granular Telemetry Table      │
+│  • SQLite Audit History Modal          • 1-Click Executive PDF Export  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Reverse Proxy (/api/*)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        FASTAPI ML BACKEND                              │
+│                   (http://127.0.0.1:8000 - REST API)                   │
+├────────────────────────────────────────────────────────────────────────┤
+│ STAGE 1: INGESTION & BUFFER (Practical 1)                              │
+│   Reads raw access logs; validates UTF-8 payload byte streams.        │
+├────────────────────────────────────────────────────────────────────────┤
+│ STAGE 2: COMBINED LOG FORMAT LEXER (Practical 2)                       │
+│   Extracts IP, RFC-1123 timestamp, HTTP verb, URI, status, bytes.      │
+├────────────────────────────────────────────────────────────────────────┤
+│ STAGE 3: NORMALIZATION & DATA CLEANING (Practical 3)                   │
+│   URL decodes query parameters; isolates path & query strings.         │
+├────────────────────────────────────────────────────────────────────────┤
+│ STAGE 4: 30-VECTOR FEATURE EXTRACTION & ISOLATION FOREST (Practical 5) │
+│   Computes Shannon entropy, token ratios, lexical markers.             │
+│   Evaluates isolation_forest.joblib: anomaly_score = -score_samples(X) │
+├────────────────────────────────────────────────────────────────────────┤
+│ STAGE 5: CHAMPION MULTI-CLASS ML CLASSIFIER (Practical 9)              │
+│   Evaluates random_forest_tuned.joblib / decision_tree_tuned.joblib.   │
+│   Strictly 100% pure machine learning prediction matrices.             │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+       ┌────────────────────────┐      ┌───────────────────────────┐
+       │   SQLITE DATABASE      │      │    EXECUTIVE PDF ENGINE   │
+       │  (data/telemetry.db)   │      │ (ReportLab Canvas Generator)│
+       │  • runs table          │      │ • Attack distribution     │
+       │  • classified_requests │      │ • Top threat actor IPs    │
+       └────────────────────────┘      │ • WAF mitigation orders   │
+                                       └───────────────────────────┘
 ```
 
 ---
 
-## 3. STREAMLIT APPLICATION STRUCTURE
+## 3. Machine Learning Models & Real Empirical Benchmarks
 
-The dashboard (`Practical 10/app.py`) is structured into four primary navigation views accessible via the sidebar:
+All models were trained on 275,000 balanced instances (Practical 6-9) and evaluated on the locked 100,000 test partition:
 
-### View 1: 🛡️ Live Threat Hunter (Core Operational Console)
-- **Model Selector:** Dynamically swap between Random Forest Ensemble, Tuned Decision Tree, and Logistic Regression.
-- **Flexible Ingestion:**
-  1. *Sample Realistic Logs (Instant):* 1-click loading of realistic multi-attack evaluation stream (`Practical 10/data/sample_eval_logs.log`).
-  2. *Upload Custom Log File:* Accepts `.log`, `.txt`, `.csv`, `.json` access logs.
-  3. *Raw Text / Stream Input:* Direct interactive pasting of individual or batched raw log strings.
-- **Forensic Pipeline Execution:** Visual step progress indicator tracking Stages 1 through 4 with timing benchmarks.
-- **Executive KPI Metric Cards:** Instant display of Total Telemetry Requests, Attacks Blocked (Count & Rate), Legitimate Allowed (Count & Rate), Zero-Day Anomalies Flagged, and Analyst False Alarm Overrides.
-- **Active Threat Incident Banner:** Real-time visual alert highlighting dominant threat vectors and edge mitigation recommendations.
-- **Request-by-Request Forensics Table:** Filterable and searchable table listing Request ID, Source IP, Method, Resource/Payload, Predicted Verdict, Severity, Confidence Percentage, Anomaly Score, and SOC Action.
-- **Deep Payload Inspector & False Alarm Feedback:** Inspect all 31 extracted features for any request, view decoded payload vs raw URL, and toggle false alarm overrides to update telemetry statistics dynamically.
-- **1-Click Executive PDF Export:** Generates an executive audit PDF report containing incident summaries, attack breakdowns, top threat actor IPs, and incident response recommendations.
+| Model Architecture | Partition | 100k Test Acc | Macro Recall | Macro F1 | Unseen Attack Recall (225 reqs) | Production Role |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Random Forest (Tuned)** | Balanced (275k) | **98.72%** | **99.62%** | **0.9881** | **97.93% (142 / 145)** | **Production Champion** |
+| **Decision Tree (Tuned)** | Balanced (275k) | **99.01%** | **99.58%** | **0.9908** | **58.62% (85 / 145)** | **Ultra-Fast Line-Rate** |
+| **Random Forest (Base)** | Balanced (275k) | 97.07% | 99.20% | 0.9720 | 97.93% (142 / 145) | Default Ensemble Baseline |
+| **Decision Tree (Base)** | Balanced (275k) | 97.32% | 99.14% | 0.9737 | 82.07% (119 / 145) | Default Tree Baseline |
+| **Logistic Regression (Linear)** | Balanced (275k) | 94.95% | 98.02% | 0.9503 | 93.79% (136 / 145) | Linear Multinomial Baseline |
 
-### View 2: 📊 Features Used (31-D Feature Architecture)
-- Comprehensive technical documentation of the 30 canonical cybersecurity features + Isolation Forest anomaly score across the 4 security dimensions:
-  1. *Lexical & Structural (9 features):* `url_length`, `url_entropy`, `path_depth`, `query_param_count`, `special_char_ratio`, `digit_ratio`, `uppercase_ratio`, `double_slash_count`, `percent_encoding_count`.
-  2. *Payload Semantics (7 features):* `payload_length`, `payload_entropy`, `has_sql_semantics`, `has_script_semantics`, `has_traversal_semantics`, `has_command_semantics`, `has_internal_ip_semantics`.
-  3. *Temporal & Velocity (7 features):* `inter_request_time`, `requests_per_ip_1min`, `requests_per_ip_5min`, `request_velocity_1sec`, `burst_ratio`, `unique_resources_per_ip_5min`, `failed_login_count`.
-  4. *Headers, Network & Anomaly (8 features):* `status_code`, `is_error_status`, `bytes_sent`, `user_agent_length`, `user_agent_entropy`, `is_known_scanner`, `is_bot`, `anomaly_score`.
-- **Gini Feature Importance Ranking:** Visual bar chart and table displaying feature importance scores computed from the champion Random Forest model.
-- **Live Feature Sandbox:** Interactive input allowing security analysts to enter arbitrary URLs or attack payloads and inspect real-time 31-D extraction values.
-
-### View 3: 🗄️ Datasets Archive (Project-Wide Catalog)
-- Complete chronological catalog documenting every dataset created across the curriculum from Practical 1 to Practical 10:
-  1. *Raw Server Access Logs (P1 & P2):* 291,489 lines, 92.16 MB raw Apache text.
-  2. *Structured Logs (P2):* 291,489 rows, 34.57 MB Parquet, 13 fields.
-  3. *Cleaned & Preprocessed Telemetry (P3):* 291,489 rows, 65.50 MB Parquet, URL-decoded.
-  4. *Labeled Multi-Class Attacks (P4):* 291,489 rows, 65.36 MB Parquet, ground-truth labels.
-  5. *Master 31-D Feature Matrix (P5):* 291,489 rows, 70.93 MB Parquet, 31 dimensions.
-  6. *SMOTE Balanced Training Partition (P6):* 66,000 rows, 11.93 MB Parquet, balanced minority classes.
-  7. *Golden Locked Test Partition (P6):* 14,000 rows, 15.56 MB Parquet, untouched evaluation set.
-  8. *Wrangled & Filtered Telemetry (P7 & P8):* 260,000 rows, 23.41 MB Parquet, aggregated temporal matrices.
-  9. *External Real-World Benchmark Suite (P9):* 15,515 rows, 4.20 MB CSV, HuggingFace & CSIC corpora.
-- **Interactive Dataset Previewer:** Inspect row counts, schemas, disk paths, and sample record heads directly within the dashboard.
-
-### View 4: ⚡ Model Benchmarks & Tuning Insights
-- Side-by-side performance cards for Random Forest (Champion), Decision Tree (Tuned Fast), and Logistic Regression (Baseline).
-- Evaluation metrics under both imbalanced and SMOTE-balanced training conditions.
-- Real-world external benchmark results validating zero-day generalizability against 15,515 external unseen attack payloads.
+### Anomaly Engine Specifications (Practical 5)
+- **Model:** Physical `isolation_forest.joblib` + `scaler.joblib`.
+- **Hyperparameters:** $n=100$ isolation trees, contamination rate $= 0.015$ (1.5%), sub-sample ratio $= 0.8$.
+- **Scoring Function:** Normalized inverted path length: $\text{Score} = -\text{score\_samples}(X)$.
+- **Escalation Policy:** Transactions scoring $> 0.52$ trigger automated WAF quarantine and alert escalation.
 
 ---
 
-## 4. HOW TO RUN THE APPLICATION
+## 4. SQLite Database Schema
 
-### Prerequisites
-Ensure the virtual environment is active and all required libraries are installed:
-```powershell
-pip install streamlit fpdf2 pandas numpy scikit-learn joblib
-```
+All inference telemetry is stored locally in `Practical 10/data/telemetry.db`:
 
-### Launching the Dashboard
-From the project root directory (`PDS-Practicals`), run:
-```powershell
-streamlit run "Practical 10/app.py"
-```
+### `runs` Table
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER PRIMARY KEY | Autoincrementing unique primary key |
+| `run_id` | TEXT UNIQUE | Unique audit run identifier (`RUN-YYYYMMDDHHMMSS-XXXXXX`) |
+| `filename` | TEXT | Log source filename or buffer tag |
+| `timestamp` | TEXT | UTC execution timestamp (ISO-8601) |
+| `total_requests` | INTEGER | Total HTTP requests analyzed |
+| `benign_count` | INTEGER | Total legitimate requests |
+| `attack_count` | INTEGER | Total malicious requests identified |
+| `attack_rate_pct` | REAL | Attack ratio percentage ($0.0 - 100.0\%$) |
+| `mean_anomaly_score` | REAL | Mean Isolation Forest score |
+| `max_anomaly_score` | REAL | Peak anomaly score detected |
+| `execution_time_ms` | REAL | Total pipeline processing latency in ms |
+| `model_used` | TEXT | Classifier model identifier |
+| `risk_level` | TEXT | Overall SOC risk badge (`Nominal`, `Elevated`, `High`, `Critical`) |
+| `top_attack_type` | TEXT | Dominant exploit category |
+| `attack_breakdown_json` | TEXT | Serialized JSON dictionary of class counts |
 
-The application will launch locally at `http://localhost:8501`.
+### `classified_requests` Table
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER PRIMARY KEY | Autoincrementing record ID |
+| `run_id` | TEXT | Foreign key reference to `runs.run_id` |
+| `line_number` | INTEGER | Sequential line index within source log |
+| `client_ip` | TEXT | Source IPv4 address |
+| `timestamp` | TEXT | Original Apache Common log timestamp |
+| `method` | TEXT | HTTP request verb (`GET`, `POST`, `PUT`, `DELETE`) |
+| `resource` | TEXT | Target request URI path and query string |
+| `status_code` | INTEGER | HTTP response status code |
+| `bytes_sent` | INTEGER | Response size in bytes |
+| `user_agent` | TEXT | Client User-Agent header string |
+| `anomaly_score` | REAL | Isolation Forest anomaly score ($0.0 - 1.0$) |
+| `predicted_label` | TEXT | Canonical attack label (`sqli`, `xss`, `benign`, etc.) |
+| `display_name` | TEXT | Human-readable attack category name |
+| `confidence_pct` | REAL | ML classification confidence percentage ($0.0 - 100.0\%$) |
+| `severity` | TEXT | Threat severity level (`Low`, `Medium`, `High`, `Critical`) |
+| `recommended_action` | TEXT | Prescribed SOC mitigation action |
+| `is_attack` | INTEGER | Binary classification indicator ($0 = \text{Benign}, 1 = \text{Attack}$) |
 
 ---
 
-## 5. DIRECTORY STRUCTURE & FILE MANIFEST
+## 5. API Reference (FastAPI Backend)
 
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/health` | Returns backend operational status, active model, and loaded weights. |
+| `GET` | `/api/models` | Returns list of available trained models and champion indicators. |
+| `GET` | `/api/sample-logs` | Returns built-in demonstration telemetry streams. |
+| `POST` | `/api/analyze-log` | Ingests log stream (JSON or multipart file), runs pipeline stages 1-5, persists to DB, and returns full results. |
+| `GET` | `/api/history` | Returns paginated list of historical audit runs from SQLite. |
+| `GET` | `/api/runs/{run_id}` | Retrieves full summary and classified request array for a past run. |
+| `DELETE` | `/api/runs/{run_id}` | Removes a run and all associated records from SQLite. |
+| `GET` | `/api/export-pdf/{run_id}` | Generates and streams executive incident audit PDF report. |
+
+---
+
+## 6. Execution Guide
+
+### Option 1: Unified Platform Launcher
+To start both the FastAPI ML Backend and Next.js Frontend simultaneously:
+```bash
+python run_practical10.py
 ```
+This automatically launches:
+- **Frontend Dashboard:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Interactive Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+### Option 2: Running Components Individually
+**FastAPI Backend:**
+```bash
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+**Next.js Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 7. Directory Structure
+
+```text
 Practical 10/
-├── app.py                          # Master Streamlit Threat Hunter Web Dashboard
-├── generate_notebook.py             # Automated notebook generator script
-├── README.md                       # Comprehensive technical documentation
-├── pipeline/
-│   ├── __init__.py                 # Pipeline module initializer
-│   ├── log_parser.py               # Stage 1: Multi-format log regex and JSON parser
-│   ├── preprocessor.py             # Stage 2: URL decoding, path cleaning & normalization
-│   ├── feature_extractor.py        # Stage 3: 31-D canonical & anomaly feature extractor
-│   ├── inference_engine.py         # Stage 4: Model loading, inference & zero-day detection
-│   └── pdf_generator.py            # Stage 5: Executive Threat Audit PDF report generator
+├── backend/
+│   ├── main.py                     # FastAPI REST server & pipeline orchestrator
+│   └── database.py                 # SQLite persistence layer (telemetry.db)
 ├── data/
-│   └── sample_eval_logs.log        # Realistic multi-vector evaluation log stream
-├── notebooks/
-│   └── Practical_10_Reusable_Log_Pipeline.ipynb  # End-to-end reproducible Jupyter Notebook
-└── outputs/
-    └── executive_threat_audit_report.pdf         # Sample generated PDF audit report
+│   └── telemetry.db                # SQLite database storing runs & classifications
+├── frontend/
+│   ├── package.json                # Next.js dependencies (Next 16, React 19, Lucide)
+│   ├── next.config.ts              # API proxy rewrite to localhost:8000
+│   └── src/
+│       ├── app/
+│       │   ├── globals.css         # Dark minimalist SOC styling
+│       │   ├── layout.tsx          # Root layout & page metadata
+│       │   └── page.tsx            # Main interactive dashboard container
+│       ├── components/
+│       │   ├── Navbar.tsx          # Brand, model selector, health status pill
+│       │   ├── PipelineFlow.tsx    # 5-stage architectural pipeline breadcrumbs
+│       │   ├── LogIngestionCard.tsx# Drag & drop upload, presets, raw text buffer
+│       │   ├── KpiSummaryCards.tsx # Total volume, attack rate, anomaly score, PDF export
+│       │   ├── ThreatAnalyticsGrid.tsx # Attack distribution & top threat actor IPs
+│       │   ├── RequestTable.tsx    # Multi-class table, search filter, feature details
+│       │   ├── HistoricalRunsModal.tsx # Past SQLite audit run drawer
+│       │   └── ModelBenchmarkModal.tsx # Empirical training benchmarks & scorecard
+│       ├── services/
+│       │   └── api.ts              # Resilient typed API client
+│       └── types/
+│           └── telemetry.ts        # TypeScript interface definitions
+├── pipeline/
+│   ├── log_parser.py               # Practical 2 Combined Log Format lexer
+│   ├── preprocessor.py             # Practical 3 Sanitization & normalization
+│   ├── feature_extractor.py        # Practical 5 30 features + Isolation Forest joblib
+│   ├── inference_engine.py         # Practical 9 Champion scikit-learn models
+│   └── pdf_generator.py            # ReportLab publication-ready incident PDF export
+├── run_practical10.py              # Single-command unified platform launcher
+└── README.md                       # Comprehensive platform documentation
 ```
-
----
-
-## 6. PIPELINE MODULE SPECIFICATIONS
-
-| Module | Purpose | Key Functions / Classes | Inputs | Outputs |
-| :--- | :--- | :--- | :--- | :--- |
-| `log_parser.py` | Multi-Format Ingestion | `parse_log_line()`, `parse_logs_text()` | Raw text string | Standardized 13-field DataFrame |
-| `preprocessor.py` | Normalization & Cleaning | `clean_and_normalize_logs()` | Parsed DataFrame | Decoded & normalized DataFrame |
-| `feature_extractor.py` | High-D Feature Matrix | `extract_features_dataframe()` | Cleaned DataFrame | 31-column numerical feature matrix |
-| `inference_engine.py` | Prediction & Forensics | `ThreatInferenceEngine`, `.predict()` | Feature DataFrame | Class labels, confidences, anomaly flags |
-| `pdf_generator.py` | Executive Reporting | `generate_threat_audit_pdf()` | Telemetry & predictions | Publication-ready PDF byte stream |
-
----
-
-## 7. SUMMARY OF PRODUCTION CLASSIFIERS
-
-| Classifier | Model File | Accuracy | Macro Recall | Macro F1 | Latency | Deployment Role |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Random Forest Ensemble** | `random_forest_balanced.joblib` | **98.36%** | **99.70%** | **0.9690** | 0.24 ms | **Champion Model:** Highest recall, ensemble robustness. |
-| **Decision Tree (Tuned)** | `decision_tree_tuned.joblib` | **98.96%** | **99.64%** | **0.9804** | 0.01 ms | **Fast Edge Model:** Ultra-low latency edge filtering. |
-| **Logistic Regression** | `logistic_regression.joblib` | **95.31%** | **97.69%** | **0.9179** | 0.00 ms | **Baseline Model:** Linear calibration reference. |

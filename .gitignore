@@ -13,6 +13,16 @@ venv/
 .venv/
 ENV/
 
+# Node.js & Next.js
+node_modules/
+.next/
+out/
+build/
+.turbo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/
 
