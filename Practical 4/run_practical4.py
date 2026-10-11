@@ -10,12 +10,11 @@ Assign high-precision, ground-truth multi-class attack labels and human-readable
 diagnostic attributions to preprocessed server access logs using a calibrated
 heuristic classification engine.
 1. Ingest clean tabular logs from Practical 3 (preprocessed_logs.csv).
-2. Calculate temporal inter-request deltas per client IP.
-3. Classify each record across 10 discrete attack classes + benign.
+2. Calculate temporal inter-request deltas and sliding window rate metrics per client IP.
+3. Classify each record across 10 discrete attack classes + benign using stateful HeuristicLabeler.
 4. Assign severity ratings (CRITICAL, HIGH, MEDIUM, LOW, INFO) and label reasons.
 5. Export labeled datasets to CSV and Snappy-compressed Parquet.
-6. Benchmark on external real-world dataset (Elastic official production logs).
-7. Generate publication-quality diagnostic plots and audit reports.
+6. Generate publication-quality diagnostic plots and audit reports.
 """
 
 import os
@@ -44,13 +43,10 @@ from src.pipeline.heuristic_engine import HeuristicLabeler
 
 # Input Files from Practical 3
 PRIMARY_INPUT_CSV = PRACTICAL3_PROCESSED / "preprocessed_logs.csv"
-EXTERNAL_INPUT_CSV = PRACTICAL3_PROCESSED / "elastic_preprocessed_logs.csv"
 
 # Fallback to local data/raw if running standalone
 if not PRIMARY_INPUT_CSV.exists():
     PRIMARY_INPUT_CSV = PRACTICAL4_DIR / "data" / "raw" / "preprocessed_logs.csv"
-if not EXTERNAL_INPUT_CSV.exists():
-    EXTERNAL_INPUT_CSV = PRACTICAL4_DIR / "data" / "raw" / "elastic_preprocessed_logs.csv"
 
 # Outputs for Practical 4
 PROCESSED_DIR = PRACTICAL4_DIR / "data" / "processed"
@@ -92,14 +88,23 @@ def classify_dataset(df: pd.DataFrame, dataset_name: str = "Primary") -> Tuple[p
     }
     
     t_start = time.time()
-    print(f"[{dataset_name}] Computing inter-request temporal velocity per client IP...")
+    print(f"[{dataset_name}] Computing temporal velocity deltas and timestamps per client IP...")
     
     # Ensure datetime format for velocity delta calculation
     df["_parsed_dt"] = pd.to_datetime(df["datetime_utc"], errors="coerce")
     inter_req_time = df.groupby("client_ip")["_parsed_dt"].diff().dt.total_seconds()
+    
+    # Derive monotonic epoch seconds for sliding windows
+    ts_epochs = (df["_parsed_dt"].values.astype("datetime64[ms]").astype("int64") / 1000.0).tolist()
     df.drop(columns=["_parsed_dt"], inplace=True, errors="ignore")
     
-    labeler = HeuristicLabeler()
+    # Initialize stateful HeuristicLabeler with calibrated production thresholds
+    labeler = HeuristicLabeler(
+        brute_force_threshold=5,
+        brute_force_window_seconds=300,
+        ddos_rate_threshold=10.0
+    )
+    labeler.reset()
     
     print(f"[{dataset_name}] Applying multi-class heuristic engine across {len(df):,} records...")
     labels: List[str] = []
@@ -110,16 +115,19 @@ def classify_dataset(df: pd.DataFrame, dataset_name: str = "Primary") -> Tuple[p
     methods = df["request_method"].astype(str).tolist()
     statuses = df["status_code"].astype(int).tolist()
     user_agents = df["user_agent"].astype(str).tolist()
+    client_ips = df["client_ip"].astype(str).tolist()
     irts = inter_req_time.tolist()
     
-    for res, meth, stat, ua, irt in zip(resources, methods, statuses, user_agents, irts):
+    for res, meth, stat, ua, irt, ip, ts in zip(resources, methods, statuses, user_agents, irts, client_ips, ts_epochs):
         irt_val = irt if (irt is not None and not np.isnan(irt)) else None
         lbl, rsn = labeler.classify_single_request(
             resource=res,
             method=meth,
             status_code=stat,
             user_agent=ua,
-            inter_request_time=irt_val
+            inter_request_time=irt_val,
+            client_ip=ip,
+            timestamp_epoch=ts
         )
         labels.append(lbl)
         reasons.append(rsn)
@@ -180,7 +188,7 @@ def generate_classification_plots(df: pd.DataFrame, metrics: Dict[str, Any]) -> 
     ]
     
     bars = ax.barh(c_counts.index.astype(str), c_counts.values, color=colors, edgecolor="#0F172A")
-    ax.set_title("Ground-Truth Multi-Class Classification Distribution", fontsize=13, fontweight="bold", pad=12)
+    ax.set_title("Ground-Truth Multi-Class Classification Distribution (500k Master Telemetry)", fontsize=13, fontweight="bold", pad=12)
     ax.set_xlabel("Record Count", fontsize=10)
     ax.invert_yaxis()
     ax.grid(True, axis="x")
@@ -258,7 +266,7 @@ def generate_classification_plots(df: pd.DataFrame, metrics: Dict[str, Any]) -> 
 # -----------------------------------------------------------------------------
 # AUDIT REPORT GENERATOR
 # -----------------------------------------------------------------------------
-def generate_audit_report(primary_metrics: Dict[str, Any], ext_metrics: Dict[str, Any]) -> Path:
+def generate_audit_report(primary_metrics: Dict[str, Any]) -> Path:
     """Generates a comprehensive scientific report of the classification pipeline."""
     report_file = REPORTS_DIR / "practical4_classification_report.txt"
     with open(report_file, "w", encoding="utf-8") as f:
@@ -290,17 +298,7 @@ def generate_audit_report(primary_metrics: Dict[str, Any], ext_metrics: Dict[str
             pct = (count / primary_metrics["total_rows"]) * 100
             f.write(f"  * {sev:<10}: {count:>8,} records ({pct:>5.2f}%)\n")
 
-        f.write("\n" + "-" * 80 + "\n")
-        f.write("2. EXTERNAL PRODUCTION BENCHMARK AUDIT (Elastic Official Apache Logs)\n")
-        f.write("-" * 80 + "\n")
-        f.write(f"Source External File     : elastic_preprocessed_logs.csv\n")
-        f.write(f"Total Lines Evaluated    : {ext_metrics['total_rows']:,}\n")
-        f.write(f"Classification Runtime   : {ext_metrics['runtime_seconds']} seconds ({ext_metrics['throughput_rps']:,.1f} rows/sec)\n")
-        f.write(f"Benign Requests Verified : {ext_metrics['benign_count']:,} ({ext_metrics['benign_pct']}%)\n")
-        f.write(f"Attacks Identified       : {ext_metrics['attack_count']:,} ({ext_metrics['attack_pct']}%)\n")
-        f.write(f"Attack Vectors Detected  : {ext_metrics['class_counts']}\n\n")
-
-        f.write("=" * 80 + "\n")
+        f.write("\n" + "=" * 80 + "\n")
         f.write("END OF PRACTICAL 4 CLASSIFICATION REPORT\n")
         f.write("=" * 80 + "\n")
 
@@ -326,7 +324,7 @@ def main():
     print(f"  * Ingested: {len(df_primary):,} rows, {len(df_primary.columns)} columns ({PRIMARY_INPUT_CSV.stat().st_size / (1024*1024):.2f} MB)")
 
     # Step 2: Classify Primary Dataset
-    print("\n[Step 2] Executing Heuristic Classification on Primary Dataset...")
+    print("\n[Step 2] Executing Stateful Heuristic Classification on Primary Dataset...")
     df_primary_labeled, primary_metrics = classify_dataset(df_primary, dataset_name="Primary")
 
     # Step 3: Export Labeled Primary Dataset
@@ -339,27 +337,13 @@ def main():
     print(f"  * Saved Labeled CSV     : {out_csv.name} ({out_csv.stat().st_size / (1024*1024):.2f} MB)")
     print(f"  * Saved Labeled Parquet : {out_pq.name} ({out_pq.stat().st_size / (1024*1024):.2f} MB)")
 
-    # Step 4: Benchmark on External Dataset
-    ext_metrics = {}
-    if EXTERNAL_INPUT_CSV.exists():
-        print(f"\n[Step 4] Benchmarking Heuristic Classifier on External Dataset: {EXTERNAL_INPUT_CSV.name}...")
-        df_ext = pd.read_csv(EXTERNAL_INPUT_CSV)
-        print(f"  * Ingested External: {len(df_ext):,} rows ({EXTERNAL_INPUT_CSV.stat().st_size / (1024*1024):.2f} MB)")
-        df_ext_labeled, ext_metrics = classify_dataset(df_ext, dataset_name="External_Elastic")
-
-        out_ext_csv = PROCESSED_DIR / "elastic_labeled_logs.csv"
-        df_ext_labeled.to_csv(out_ext_csv, index=False)
-        print(f"  * Saved External Labeled CSV: {out_ext_csv.name} ({out_ext_csv.stat().st_size / (1024*1024):.2f} MB)")
-    else:
-        print(f"\n[Step 4] External dataset not found at {EXTERNAL_INPUT_CSV}. Skipping benchmark.")
-
-    # Step 5: Visualizations
-    print("\n[Step 5] Generating Publication-Quality Diagnostic Plots...")
+    # Step 4: Visualizations
+    print("\n[Step 4] Generating Publication-Quality Diagnostic Plots...")
     generate_classification_plots(df_primary_labeled, primary_metrics)
 
-    # Step 6: Audit Report
-    print("\n[Step 6] Compiling Audit & Verification Report...")
-    report_path = generate_audit_report(primary_metrics, ext_metrics)
+    # Step 5: Audit Report
+    print("\n[Step 5] Compiling Audit & Verification Report...")
+    report_path = generate_audit_report(primary_metrics)
     print(f"  * Report Saved  : {report_path}")
 
     print("\n" + "=" * 75)

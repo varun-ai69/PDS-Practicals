@@ -3,20 +3,20 @@
 ================================================================================
 
 Course         : Python for Data Science (BE05000231_PDS)
-Execution Date : 2026-10-09 03:41:55
+Execution Date : 2026-10-11 02:17:34
 
 --------------------------------------------------------------------------------
 1. PRIMARY ENTERPRISE DATASET STRUCTURING AUDIT
 --------------------------------------------------------------------------------
 Source File Name       : server_access.log
-Source File Size       : 87.89 MB
-Total Physical Lines   : 300,010
-Parsed DataFrame Rows  : 300,010
-Parsing Success Rate   : 99.9933%
-Malformed Lines        : 20
-Parsing Runtime        : 3.6 seconds (83,248.6 lines/sec)
-Initial Memory Usage   : 139.68 MB
-Optimized Memory Usage : 126.46 MB (9.47% reduction)
+Source File Size       : 110.93 MB
+Total Physical Lines   : 500,000
+Parsed DataFrame Rows  : 500,000
+Parsing Success Rate   : 100.0%
+Malformed Lines        : 0
+Parsing Runtime        : 9.44 seconds (52,952.1 lines/sec)
+Initial Memory Usage   : 162.45 MB
+Optimized Memory Usage : 140.39 MB (13.58% reduction)
 
 --------------------------------------------------------------------------------
 2. CANONICAL 13-COLUMN SCHEMA DEFINITION & DATA TYPES
@@ -31,9 +31,9 @@ Optimized Memory Usage : 126.46 MB (9.47% reduction)
   * http_protocol          : category        (Completeness: 100.0%)
   * status_code            : int16           (Completeness: 100.0%)
   * bytes_sent             : int32           (Completeness: 100.0%)
-  * referrer               : str             (Completeness: 65.0%)
+  * referrer               : str             (Completeness: 30.0%)
   * user_agent             : str             (Completeness: 100.0%)
-  * payload                : str             (Completeness: 87.7%)
+  * payload                : str             (Completeness: 52.8%)
   * parse_success          : int8            (Completeness: 100.0%)
 
 --------------------------------------------------------------------------------

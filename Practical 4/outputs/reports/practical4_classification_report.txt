@@ -3,48 +3,38 @@
 ================================================================================
 
 Course         : Python for Data Science (BE05000231_PDS)
-Execution Date : 2026-10-09 04:10:43
+Execution Date : 2026-10-11 02:41:04
 
 --------------------------------------------------------------------------------
 1. PRIMARY ENTERPRISE DATASET CLASSIFICATION AUDIT (server_access.log)
 --------------------------------------------------------------------------------
 Source Input File        : preprocessed_logs.csv
-Total Rows Classified    : 300,010
-Classification Runtime   : 29.08 seconds (10,316.7 rows/sec)
-Macro Ratio              : 68.73% Benign : 31.27% Attack
-Benign Requests          : 206,200
-Malicious Requests       : 93,810
-In-Memory Data Size      : 245.36 MB
+Total Rows Classified    : 500,000
+Classification Runtime   : 33.42 seconds (14,961.1 rows/sec)
+Macro Ratio              : 35.81% Benign : 64.19% Attack
+Benign Requests          : 179,067
+Malicious Requests       : 320,933
+In-Memory Data Size      : 275.04 MB
 
 Class-by-Class Breakdown (10 Attack Vectors + Benign):
-  * benign              :  206,200 records (68.73%) [INFO]
-  * path_traversal      :   10,558 records ( 3.52%) [MEDIUM]
-  * web_shell           :   10,481 records ( 3.49%) [CRITICAL]
-  * brute_force         :   10,466 records ( 3.49%) [MEDIUM]
-  * ssrf                :   10,429 records ( 3.48%) [HIGH]
-  * ddos_http_flood     :   10,276 records ( 3.43%) [HIGH]
-  * xss                 :    9,672 records ( 3.22%) [HIGH]
-  * dir_fuzzing         :    9,497 records ( 3.17%) [LOW]
-  * mal_scanner         :    9,140 records ( 3.05%) [LOW]
-  * sqli                :    8,367 records ( 2.79%) [HIGH]
-  * command_injection   :    4,924 records ( 1.64%) [CRITICAL]
+  * benign              :  179,067 records (35.81%) [INFO]
+  * path_traversal      :   35,439 records ( 7.09%) [MEDIUM]
+  * dir_fuzzing         :   35,000 records ( 7.00%) [LOW]
+  * mal_scanner         :   35,000 records ( 7.00%) [LOW]
+  * ssrf                :   35,000 records ( 7.00%) [HIGH]
+  * web_shell           :   35,000 records ( 7.00%) [CRITICAL]
+  * brute_force         :   34,761 records ( 6.95%) [MEDIUM]
+  * xss                 :   33,436 records ( 6.69%) [HIGH]
+  * ddos_http_flood     :   32,177 records ( 6.44%) [HIGH]
+  * sqli                :   26,655 records ( 5.33%) [HIGH]
+  * command_injection   :   18,465 records ( 3.69%) [CRITICAL]
 
 Severity Triage Summary:
-  * INFO      :  206,200 records (68.73%)
-  * HIGH      :   38,744 records (12.91%)
-  * MEDIUM    :   21,024 records ( 7.01%)
-  * LOW       :   18,637 records ( 6.21%)
-  * CRITICAL  :   15,405 records ( 5.13%)
-
---------------------------------------------------------------------------------
-2. EXTERNAL PRODUCTION BENCHMARK AUDIT (Elastic Official Apache Logs)
---------------------------------------------------------------------------------
-Source External File     : elastic_preprocessed_logs.csv
-Total Lines Evaluated    : 10,000
-Classification Runtime   : 0.23 seconds (43,478.3 rows/sec)
-Benign Requests Verified : 6,839 (68.39%)
-Attacks Identified       : 3,161 (31.61%)
-Attack Vectors Detected  : {'benign': 6839, 'ddos_http_flood': 3157, 'ssrf': 4}
+  * INFO      :  179,067 records (35.81%)
+  * HIGH      :  127,268 records (25.45%)
+  * MEDIUM    :   70,200 records (14.04%)
+  * LOW       :   70,000 records (14.00%)
+  * CRITICAL  :   53,465 records (10.69%)
 
 ================================================================================
 END OF PRACTICAL 4 CLASSIFICATION REPORT

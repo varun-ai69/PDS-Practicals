@@ -3,34 +3,34 @@
 ================================================================================
 
 Course         : Python for Data Science (BE05000231_PDS)
-Execution Date : 2026-10-09 03:54:19
+Execution Date : 2026-10-11 02:21:54
 
 --------------------------------------------------------------------------------
 1. PRIMARY ENTERPRISE DATASET CLEANING AUDIT (server_access.log)
 --------------------------------------------------------------------------------
 Source Input File        : structured_logs.csv
-Total Input Rows         : 300,010
-Total Cleaned Rows       : 300,010 (100.0% Retention)
+Total Input Rows         : 500,000
+Total Cleaned Rows       : 500,000 (100.0% Retention)
 Total Columns Output     : 21 (Enriched with datetime & clean paths)
-Processing Runtime       : 2.83 seconds (106,010.6 rows/sec)
-Memory Utilization       : 226.14 MB
-Rapid Consecutive Dups   : 720 flagged
-Unique Clean Paths       : 57
+Processing Runtime       : 3.5 seconds (142,857.1 rows/sec)
+Memory Utilization       : 239.8 MB
+Rapid Consecutive Dups   : 4,177 flagged
+Unique Clean Paths       : 33,067
 
 Missing Value Imputation Audit:
   * line_number           : Before =        0 nulls | After =   0 nulls
   * client_ip             : Before =        0 nulls | After =   0 nulls
-  * ident                 : Before =  300,010 nulls | After =   0 nulls
-  * auth_user             : Before =  300,010 nulls | After =   0 nulls
-  * timestamp             : Before =       20 nulls | After =   0 nulls
+  * ident                 : Before =  500,000 nulls | After =   0 nulls
+  * auth_user             : Before =  500,000 nulls | After =   0 nulls
+  * timestamp             : Before =        0 nulls | After =   0 nulls
   * request_method        : Before =        0 nulls | After =   0 nulls
   * resource_requested    : Before =        0 nulls | After =   0 nulls
   * http_protocol         : Before =        0 nulls | After =   0 nulls
   * status_code           : Before =        0 nulls | After =   0 nulls
   * bytes_sent            : Before =        0 nulls | After =   0 nulls
-  * referrer              : Before =  105,020 nulls | After =   0 nulls
-  * user_agent            : Before =       20 nulls | After =   0 nulls
-  * payload               : Before =   36,843 nulls | After =   0 nulls
+  * referrer              : Before =  350,000 nulls | After =   0 nulls
+  * user_agent            : Before =        0 nulls | After =   0 nulls
+  * payload               : Before =  235,931 nulls | After =   0 nulls
   * parse_success         : Before =        0 nulls | After =   0 nulls
 
 --------------------------------------------------------------------------------
