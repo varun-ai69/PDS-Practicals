@@ -1,0 +1,9 @@
+Model Name,Partition,Architecture,100k Test Acc (%),100k Macro Recall (%),100k Macro F1,225-Req Attack Recall (%),225-Req Benign Spec (%),225-Req False Alarm (%),225-Req Binary Acc (%),Inference Latency (ms)
+Balanced RF (Tuned Champion),Balanced (275k),Random Forest,98.72,99.62,0.9881,95.86,60.0,40.0,83.11,38.28
+Balanced DT (Tuned Fast),Balanced (275k),Decision Tree,99.01,99.58,0.9908,58.62,100.0,0.0,73.33,1.0
+Balanced RF (Base),Balanced (275k),Random Forest,98.72,99.62,0.9881,95.86,60.0,40.0,83.11,40.15
+Balanced DT (Base),Balanced (275k),Decision Tree,97.32,99.14,0.9737,89.66,65.0,35.0,80.89,0.0
+Balanced LR (Linear),Balanced (275k),Logistic Regression,94.95,98.02,0.9503,74.48,20.0,80.0,55.11,1.01
+Unbalanced RF,Unbalanced (400k),Random Forest,98.76,98.72,0.9871,57.93,65.0,35.0,60.44,26.77
+Unbalanced DT,Unbalanced (400k),Decision Tree,97.97,97.35,0.9775,53.1,75.0,25.0,60.89,0.0
+Unbalanced LR,Unbalanced (400k),Logistic Regression,86.16,77.85,0.8082,58.62,35.0,65.0,50.22,0.0

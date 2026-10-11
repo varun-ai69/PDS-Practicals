@@ -85,22 +85,23 @@ model_specs = [
     ("Unbalanced LR", MODELS_DIR / "unbalanced" / "logistic_regression.joblib", True),
 ]
 
-# Locked 100k Test Benchmark Stats (from Practical 9)
-LOCKED_100K_STATS = {
-    "Balanced RF (Tuned Champion)": {"acc": 98.72, "recall": 99.62, "f1": 0.9881, "fit_s": 11.68, "pred_s": 0.53},
-    "Balanced DT (Tuned Fast)": {"acc": 99.01, "recall": 99.58, "f1": 0.9908, "fit_s": 2.57, "pred_s": 0.01},
-    "Balanced RF (Base)": {"acc": 97.07, "recall": 99.20, "f1": 0.9720, "fit_s": 8.32, "pred_s": 0.32},
-    "Balanced DT (Base)": {"acc": 97.32, "recall": 99.14, "f1": 0.9737, "fit_s": 3.00, "pred_s": 0.01},
-    "Balanced LR (Linear)": {"acc": 94.95, "recall": 98.02, "f1": 0.9503, "fit_s": 15.87, "pred_s": 0.01},
-    "Unbalanced RF": {"acc": 98.76, "recall": 98.72, "f1": 0.9871, "fit_s": 13.67, "pred_s": 0.35},
-    "Unbalanced DT": {"acc": 97.97, "recall": 97.35, "f1": 0.9775, "fit_s": 4.47, "pred_s": 0.01},
-    "Unbalanced LR": {"acc": 96.28, "recall": 96.60, "f1": 0.9610, "fit_s": 34.49, "pred_s": 0.01},
-}
+# Load locked 100,000 test partition dynamically (ZERO HARDCODED DICTIONARIES)
+test_pq_path = PROJECT_ROOT / "Practical 6" / "data" / "processed" / "test_dataset.parquet"
+if test_pq_path.exists():
+    print(f"\n[Step 1.5] Dynamically loading 100,000 locked test partition from {test_pq_path.name}...")
+    df_test_100k = pd.read_parquet(test_pq_path)
+    X_test_100k = df_test_100k[feat_cols].fillna(0).to_numpy(dtype=np.float32)
+    y_test_100k = df_test_100k["label"].to_numpy()
+    X_test_100k_scaled = scaler.transform(X_test_100k)
+else:
+    df_test_100k = None
+    X_test_100k = None
+    y_test_100k = None
 
 audit_rows = []
 predictions = {}
 
-print("\n[Step 2] Executing Evaluation across all physical models...")
+print("\n[Step 2] Executing Dynamic Evaluation across all physical models...")
 for model_name, model_path, use_scaler in model_specs:
     if not model_path.exists():
         continue
@@ -123,15 +124,23 @@ for model_name, model_path, use_scaler in model_specs:
     false_alarm_rate = 100.0 - benign_spec
     overall_binary_acc = np.mean(preds_bin == y_true_binary) * 100.0
 
-    locked = LOCKED_100K_STATS.get(model_name, {})
+    # 100% Dynamic 100k Test Metrics (Zero Hardcoding)
+    if df_test_100k is not None:
+        X_100k_in = X_test_100k_scaled if use_scaler else X_test_100k
+        p_100k = clf.predict(X_100k_in)
+        acc_100k = round(accuracy_score(y_test_100k, p_100k) * 100.0, 2)
+        rec_100k = round(recall_score(y_test_100k, p_100k, average="macro", zero_division=0) * 100.0, 2)
+        f1_100k = round(f1_score(y_test_100k, p_100k, average="macro", zero_division=0), 4)
+    else:
+        acc_100k, rec_100k, f1_100k = 0.0, 0.0, 0.0
 
     audit_rows.append({
         "Model Name": model_name,
         "Partition": "Balanced (275k)" if "Balanced" in model_name else "Unbalanced (400k)",
         "Architecture": "Random Forest" if "RF" in model_name else ("Decision Tree" if "DT" in model_name else "Logistic Regression"),
-        "100k Test Acc (%)": locked.get("acc", 0.0),
-        "100k Macro Recall (%)": locked.get("recall", 0.0),
-        "100k Macro F1": locked.get("f1", 0.0),
+        "100k Test Acc (%)": acc_100k,
+        "100k Macro Recall (%)": rec_100k,
+        "100k Macro F1": f1_100k,
         "225-Req Attack Recall (%)": round(attack_recall, 2),
         "225-Req Benign Spec (%)": round(benign_spec, 2),
         "225-Req False Alarm (%)": round(false_alarm_rate, 2),
@@ -139,7 +148,7 @@ for model_name, model_path, use_scaler in model_specs:
         "Inference Latency (ms)": round(t_inf * 1000, 2)
     })
 
-    print(f"  [+] {model_name:<30} | 100k Acc: {locked.get('acc', 0.0):.2f}% | 225-Req Recall: {attack_recall:.2f}% | Spec: {benign_spec:.2f}%")
+    print(f"  [+] {model_name:<30} | 100k Acc: {acc_100k:.2f}% | 225-Req Recall: {attack_recall:.2f}% | Spec: {benign_spec:.2f}%")
 
 df_audit = pd.DataFrame(audit_rows)
 df_audit.to_csv(REPORTS_OUT / "evaluation_metrics.csv", index=False)

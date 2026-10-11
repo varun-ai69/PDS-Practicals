@@ -14,7 +14,8 @@ import pandas as pd
 import numpy as np
 import joblib
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PRACTICAL10_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = PRACTICAL10_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.features.feature_definitions import CANONICAL_FEATURE_NAMES
@@ -96,6 +97,9 @@ ATTACK_METADATA = {
 }
 
 
+ANOMALY_THRESHOLD = 0.52
+
+
 class ThreatInferenceEngine:
     """Manages model loading and 100% independent machine learning prediction."""
 
@@ -110,6 +114,18 @@ class ThreatInferenceEngine:
     def __init__(self, model_key: str = "Random Forest Ensemble (Champion)", model_path: Path = None):
         self.current_model_key = model_key
         self.model = self._load_model(model_key, model_path=model_path)
+        self.scaler = self._load_scaler()
+
+    def _load_scaler(self) -> Any:
+        scaler_candidates = [
+            MODELS_DIR / "scaler.joblib",
+            SRC_MODELS_DIR / "scaler.joblib",
+            PRACTICAL10_DIR.parent / "Practical 9" / "outputs" / "models" / "balanced" / "scaler.joblib"
+        ]
+        for p in scaler_candidates:
+            if p.exists():
+                return joblib.load(p)
+        return None
 
     def _load_model(self, model_key: str, model_path: Path = None) -> Any:
         if model_path is not None and Path(model_path).exists():
@@ -141,12 +157,19 @@ class ThreatInferenceEngine:
         feat_cols = [c for c in FEATURE_COLUMNS if c in df_features.columns]
         X = df_features[feat_cols].fillna(0).to_numpy(dtype=np.float32)
 
+        # Scale features if model is linear (Logistic Regression requires standard scaling)
+        is_linear = "logistic" in self.current_model_key.lower() or "linear" in self.current_model_key.lower()
+        if is_linear and self.scaler is not None:
+            X_input = self.scaler.transform(X)
+        else:
+            X_input = X
+
         # 1. Authoritative Class Predictions directly from ML Model
-        raw_preds = self.model.predict(X)
+        raw_preds = self.model.predict(X_input)
 
         # 2. Probability & Confidence Calculation
         if hasattr(self.model, "predict_proba"):
-            probs = self.model.predict_proba(X)
+            probs = self.model.predict_proba(X_input)
             confidences = np.max(probs, axis=1) * 100.0
         else:
             confidences = np.ones(len(raw_preds)) * 95.0
@@ -166,8 +189,8 @@ class ThreatInferenceEngine:
                 "action": "Inspect Manually" if pred_lbl != "benign" else "Allow Request"
             })
 
-            # Check if flagged as an unsupervised anomaly by Isolation Forest (>0.55)
-            is_anomaly = bool(anom > 0.55)
+            # Check if flagged as an unsupervised anomaly by Isolation Forest (>= 0.52)
+            is_anomaly = bool(anom >= ANOMALY_THRESHOLD)
             is_atk = bool(pred_lbl != "benign")
 
             results.append({

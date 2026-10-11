@@ -15,7 +15,7 @@ This repository houses the complete, academically rigorous practical portfolio f
 3. RFC-compliant data normalization, URI decoding, and missing value handling
 4. Heuristic labeling establishing authoritative multi-class ground truth
 5. 30-dimensional canonical feature engineering and unsupervised Isolation Forest anomaly scoring
-6. SMOTE balancing yielding 275,000 equalized records across 11 classes
+6. Hybrid resampling (SMOTE oversampling on rare classes + stratified undersampling) yielding 275,000 equalized records across 11 classes
 7. Aggregated wrangling, IP velocity analysis, and time-series resampling
 8. Statistical visual exploratory data analysis (EDA)
 9. Supervised multi-class attack classification (Random Forest, Decision Tree, Logistic Regression)
@@ -61,7 +61,7 @@ flowchart TD
 | **Practical 3** | *To Handle Missing, Incomplete, or Corrupt Log Entries* | [Practical 3](Practical%203/README.md) | URL percent-decoding, RFC compliance filtering, and missing header imputation. |
 | **Practical 4** | *To Perform Rule-Based Log Classification Using Python* | [Practical 4](Practical%204/README.md) | Multi-vector heuristic engine establishing ground truth labels across 11 classes. |
 | **Practical 5** | *To Extract Cybersecurity Features from Request URI, Method, Status & Agent* | [Practical 5](Practical%205/README.md) | 30 canonical lexical/entropy features + physical Isolation Forest anomaly engine. |
-| **Practical 6** | *To Handle Imbalanced Cyber Datasets Using Resampling Techniques* | [Practical 6](Practical%206/README.md) | SMOTE balancing equalizing 11 classes to 275,000 records without data leakage. |
+| **Practical 6** | *To Handle Imbalanced Cyber Datasets Using Resampling Techniques* | [Practical 6](Practical%206/README.md) | Hybrid resampling (SMOTE oversampling + stratified undersampling) equalizing 11 classes to 275,000 records without data leakage. |
 | **Practical 7** | *To do the Data Wrangling for Aggregated Analysis on Balanced Dataset* | [Practical 7](Practical%207/README.md) | GroupBy IP frequencies, hourly time-series resampling, and cross-tabulation pivots. |
 | **Practical 8** | *To Use Visual Tools for Data Visualization and EDA* | [Practical 8](Practical%208/README.md) | Publication-grade static and interactive EDA visualizations (heatmaps, distributions). |
 | **Practical 9** | *To Train Machine Learning Models for Multi-Class Attack Detection* | [Practical 9](Practical%209/README.md) | Trained Random Forest (98.72%), Decision Tree (99.01%), and Logistic Regression (94.95%). |
@@ -87,7 +87,7 @@ All models evaluated on the locked 100,000 test partition:
 
 - **Core Analytics & ML:** Python 3.12, NumPy, Pandas, Scikit-Learn, Joblib, Imbalanced-Learn (SMOTE)
 - **Data Visualizations:** Matplotlib, Seaborn, Plotly
-- **Backend Architecture:** FastAPI, Uvicorn, SQLite3, ReportLab (PDF Generation)
+- **Backend Architecture:** FastAPI, Uvicorn, SQLite3, fpdf2 (Executive PDF Generation)
 - **Frontend Architecture:** Next.js 16 (App Router), TypeScript, Tailwind CSS, Lucide Icons (Zero Emojis)
 
 ---

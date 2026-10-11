@@ -44,9 +44,16 @@ def init_db() -> None:
                 model_used TEXT NOT NULL,
                 risk_level TEXT NOT NULL,
                 top_attack_type TEXT NOT NULL,
-                attack_breakdown_json TEXT NOT NULL
+                attack_breakdown_json TEXT NOT NULL,
+                top_ips_json TEXT DEFAULT '[]'
             );
         """)
+
+        # Migration helper for existing databases
+        try:
+            cursor.execute("ALTER TABLE runs ADD COLUMN top_ips_json TEXT DEFAULT '[]';")
+        except Exception:
+            pass
 
         # 2. Classified Requests Table
         cursor.execute("""
@@ -90,8 +97,8 @@ def save_run(run_summary: Dict[str, Any], requests_list: List[Dict[str, Any]]) -
             INSERT INTO runs (
                 run_id, filename, timestamp, total_requests, benign_count, attack_count,
                 attack_rate_pct, mean_anomaly_score, max_anomaly_score, execution_time_ms,
-                model_used, risk_level, top_attack_type, attack_breakdown_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                model_used, risk_level, top_attack_type, attack_breakdown_json, top_ips_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             run_id,
             run_summary.get("filename", "uploaded_logs.log"),
@@ -106,7 +113,8 @@ def save_run(run_summary: Dict[str, Any], requests_list: List[Dict[str, Any]]) -
             str(run_summary.get("model_used", "Random Forest Ensemble (Champion)")),
             str(run_summary.get("risk_level", "Low")),
             str(run_summary.get("top_attack_type", "None")),
-            json.dumps(run_summary.get("attack_breakdown", {}))
+            json.dumps(run_summary.get("attack_breakdown", {})),
+            json.dumps(run_summary.get("top_ips", []))
         ))
 
         # Batch insert classified requests
@@ -159,6 +167,10 @@ def get_all_runs(limit: int = 50) -> List[Dict[str, Any]]:
             d["attack_breakdown"] = json.loads(d["attack_breakdown_json"])
         except Exception:
             d["attack_breakdown"] = {}
+        try:
+            d["top_ips"] = json.loads(d.get("top_ips_json") or "[]")
+        except Exception:
+            d["top_ips"] = []
         results.append(d)
     return results
 
@@ -178,6 +190,10 @@ def get_run_by_id(run_id: str) -> Optional[Dict[str, Any]]:
             run_dict["attack_breakdown"] = json.loads(run_dict["attack_breakdown_json"])
         except Exception:
             run_dict["attack_breakdown"] = {}
+        try:
+            run_dict["top_ips"] = json.loads(run_dict.get("top_ips_json") or "[]")
+        except Exception:
+            run_dict["top_ips"] = []
 
         cursor.execute("""
             SELECT line_number, client_ip, timestamp, method, resource, status_code,

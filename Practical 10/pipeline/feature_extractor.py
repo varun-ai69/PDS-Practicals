@@ -72,26 +72,37 @@ def extract_features_dataframe(df_clean: pd.DataFrame) -> pd.DataFrame:
         ip_unique_res = df.groupby("ip_address")["normalized_path"].nunique().to_dict()
         ip_failed_logins = df[df["status_code"] == 401].groupby("ip_address").size().to_dict()
         
-        # If timestamp is parseable, sort and compute inter-request time
-        try:
-            df["_dt"] = pd.to_datetime(df["timestamp"], errors="coerce")
-            if df["_dt"].notna().sum() > 1:
-                df["_irt"] = df.groupby("ip_address")["_dt"].diff().dt.total_seconds().fillna(60.0).clip(lower=0.0)
+        # Robust RFC-1123 / Apache timestamp parser
+        ts_clean = df["timestamp"].astype(str).str.strip("[]")
+        df["_dt"] = pd.to_datetime(ts_clean, format="%d/%b/%Y:%H:%M:%S %z", errors="coerce")
+        if df["_dt"].isna().sum() > (len(df) // 2):
+            df["_dt"] = pd.to_datetime(ts_clean, errors="coerce")
+
+        # Compute real session duration per IP to prevent batch-size distortion
+        ip_timespans = {}
+        for ip_val, grp in df.groupby("ip_address"):
+            v_dts = grp["_dt"].dropna()
+            if len(v_dts) > 1:
+                sec_span = max(1.0, (v_dts.max() - v_dts.min()).total_seconds())
+                ip_timespans[ip_val] = sec_span / 60.0
             else:
-                df["_irt"] = 60.0
-        except Exception:
+                ip_timespans[ip_val] = 1.0
+
+        if df["_dt"].notna().sum() > 1:
+            df["_irt"] = df.groupby("ip_address")["_dt"].diff().dt.total_seconds().fillna(60.0).clip(lower=0.0)
+        else:
             df["_irt"] = 60.0
     else:
         ip_counts = {}
         ip_unique_res = {}
         ip_failed_logins = {}
+        ip_timespans = {}
         df["_irt"] = 60.0
 
     feature_rows = []
 
     for idx, r in df.iterrows():
         url = str(r["resource"])
-        # Payload is query string or explicit payload, never full URL
         raw_qs = str(r.get("query_string", "")).strip()
         dec_payload = raw_qs if raw_qs else ""
         ip = str(r["ip_address"])
@@ -105,14 +116,16 @@ def extract_features_dataframe(df_clean: pd.DataFrame) -> pd.DataFrame:
         # 2. 7 Payload Semantics Features
         sem = extract_payload_semantics(dec_payload)
 
-        # 3. 7 Temporal & Session Dynamics
+        # 3. 7 Temporal & Session Dynamics (Normalized across session minutes)
         req_count = float(ip_counts.get(ip, 1))
         uniq_res = float(ip_unique_res.get(ip, 1))
         failed_log = float(ip_failed_logins.get(ip, 0))
         irt = float(r.get("_irt", 60.0))
-        velocity_1s = 1.0 if irt <= 1.0 else 0.0
-        req_1m = req_count
-        req_5m = req_count
+        velocity_1s = 1.0 if (irt <= 1.0 and irt > 0.0) else 0.0
+
+        span_min = ip_timespans.get(ip, 1.0)
+        req_1m = round(req_count / max(1.0, span_min), 2)
+        req_5m = round(req_count / max(1.0, span_min / 5.0), 2) if span_min >= 5.0 else req_count
         avg_5m = max(1.0, req_5m / 5.0)
         burst = round(req_1m / avg_5m, 3)
 

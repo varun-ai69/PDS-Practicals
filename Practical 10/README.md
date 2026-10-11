@@ -10,18 +10,18 @@
 ## 1. Aim & Objectives
 
 ### Aim
-To engineer, integrate, and deploy a production-grade, end-to-end cyber threat intelligence platform consisting of a high-performance **FastAPI** machine learning service and an executive **Next.js** Security Operations Center (SOC) dashboard. The platform ingests raw HTTP web access logs, executes a 5-stage ML pipeline, performs unsupervised Isolation Forest anomaly scoring, classifies threats using physical scikit-learn champion models with **zero regex overrides**, persists all telemetry runs to an **SQLite database**, and generates publication-ready executive PDF audit reports with a single click.
+To engineer, integrate, and deploy a production-grade, end-to-end cyber threat intelligence platform consisting of a high-performance **FastAPI** machine learning service and an executive **Next.js** Security Operations Center (SOC) dashboard. The platform ingests raw HTTP web access logs, executes a 5-stage ML pipeline, performs unsupervised Isolation Forest anomaly scoring, classifies threats using physical scikit-learn champion models with **100% autonomous machine learning inference**, persists all telemetry runs and threat actor profiles to an **SQLite database**, and generates publication-ready executive PDF audit reports with a single click.
 
 ### Objectives
 1. **Pipeline Continuity (Practicals 1 to 9):** Ingest raw server access logs and execute the authentic pipeline transformations:
    $$\text{Ingestion (P1)} \to \text{CLF Lexer (P2)} \to \text{Sanitization (P3)} \to \text{30 Features + Isolation Forest (P5)} \to \text{Champion ML Inference (P9)}$$
-2. **Strict Zero Heuristics & Zero RegEx Overrides:** Completely eliminate legacy mock formulas, heuristic keyword overrides, and hardcoded pattern escalations. Classification decisions are 100% computed from the 30-feature vector and physical scikit-learn models.
+2. **Autonomous ML Decision Logic:** Eliminate mock formulas, heuristic keyword overrides, and hardcoded post-prediction escalations. Classification decisions are 100% computed from the 30-feature vector and physical scikit-learn models. Ground truth labels originate from Practical 4 weak supervision heuristics (as mandated by the GTU syllabus), and feature extraction computes numeric lexical properties.
 3. **Executive Next.js Frontend:** Modern, responsive, minimalist SOC dashboard built with Next.js 16, TypeScript, and Tailwind CSS. Strictly **ZERO emojis** throughout the user interface, utilizing clean Lucide SVG icons.
-4. **Persistent SQLite Telemetry Store:** Save every ingested log stream and every classified request into a local relational database (`data/telemetry.db`) with relational schema mapping (`runs` and `classified_requests` tables).
+4. **Persistent SQLite Telemetry Store:** Save every ingested log stream and every classified request into a local relational database (`data/telemetry.db`) with relational schema mapping (`runs` and `classified_requests` tables, including persistent `top_ips` profiling).
 5. **Interactive Model Switching & Real Benchmarks:** Support on-the-fly switching between the models trained in Practical 9:
    - **Random Forest Ensemble (Champion):** 98.72% Accuracy, 99.62% Macro Recall, 150 bagged trees, entropy criterion.
    - **Decision Tree (Tuned Fast):** 99.01% Accuracy, 99.58% Macro Recall, depth=20, sub-millisecond line-rate latency.
-6. **Executive PDF Audit Export:** One-click automated report generation compiling incident summaries, attack rate percentages, top malicious source IPs, anomaly distributions, and WAF mitigation directives.
+6. **Executive PDF Audit Export:** One-click automated report generation compiling incident summaries, attack rate percentages, top malicious source IPs, anomaly distributions, and WAF mitigation directives using `fpdf2`.
 
 ---
 
@@ -63,7 +63,7 @@ To engineer, integrate, and deploy a production-grade, end-to-end cyber threat i
                     ▼                                ▼
        ┌────────────────────────┐      ┌───────────────────────────┐
        │   SQLITE DATABASE      │      │    EXECUTIVE PDF ENGINE   │
-       │  (data/telemetry.db)   │      │ (ReportLab Canvas Generator)│
+       │  (data/telemetry.db)   │      │  (fpdf2 Executive Audit)  │
        │  • runs table          │      │ • Attack distribution     │
        │  • classified_requests │      │ • Top threat actor IPs    │
        └────────────────────────┘      │ • WAF mitigation orders   │
@@ -78,11 +78,11 @@ All models were trained on 275,000 balanced instances (Practical 6-9) and evalua
 
 | Model Architecture | Partition | 100k Test Acc | Macro Recall | Macro F1 | Unseen Attack Recall (225 reqs) | Production Role |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Random Forest (Tuned)** | Balanced (275k) | **98.72%** | **99.62%** | **0.9881** | **97.93% (142 / 145)** | **Production Champion** |
-| **Decision Tree (Tuned)** | Balanced (275k) | **99.01%** | **99.58%** | **0.9908** | **58.62% (85 / 145)** | **Ultra-Fast Line-Rate** |
-| **Random Forest (Base)** | Balanced (275k) | 97.07% | 99.20% | 0.9720 | 97.93% (142 / 145) | Default Ensemble Baseline |
-| **Decision Tree (Base)** | Balanced (275k) | 97.32% | 99.14% | 0.9737 | 82.07% (119 / 145) | Default Tree Baseline |
-| **Logistic Regression (Linear)** | Balanced (275k) | 94.95% | 98.02% | 0.9503 | 93.79% (136 / 145) | Linear Multinomial Baseline |
+| **Random Forest (Tuned)** | Balanced (275k) | **98.72%** | **99.62%** | **0.9881** | **95.86% (139 / 145)** | **Production Champion** |
+| **Decision Tree (Tuned)** | Balanced (275k) | **99.01%** | **99.58%** | **0.9908** | **58.62% (85 / 145)** | **High-Throughput Line-Rate** |
+| **Random Forest (Base)** | Balanced (275k) | 98.72% | 99.62% | 0.9881 | 95.86% (139 / 145) | Default Ensemble Baseline |
+| **Decision Tree (Base)** | Balanced (275k) | 97.32% | 99.14% | 0.9737 | 89.66% (130 / 145) | Default Tree Baseline |
+| **Logistic Regression (Linear)** | Balanced (275k) | 94.95% | 98.02% | 0.9503 | 74.48% (108 / 145) | Linear Scaled Baseline |
 
 ### Anomaly Engine Specifications (Practical 5)
 - **Model:** Physical `isolation_forest.joblib` + `scaler.joblib`.
@@ -114,6 +114,7 @@ All inference telemetry is stored locally in `Practical 10/data/telemetry.db`:
 | `risk_level` | TEXT | Overall SOC risk badge (`Nominal`, `Elevated`, `High`, `Critical`) |
 | `top_attack_type` | TEXT | Dominant exploit category |
 | `attack_breakdown_json` | TEXT | Serialized JSON dictionary of class counts |
+| `top_ips_json` | TEXT | Serialized JSON array of top threat actor source IPs |
 
 ### `classified_requests` Table
 | Column | Type | Description |
@@ -214,8 +215,8 @@ Practical 10/
 │   ├── log_parser.py               # Practical 2 Combined Log Format lexer
 │   ├── preprocessor.py             # Practical 3 Sanitization & normalization
 │   ├── feature_extractor.py        # Practical 5 30 features + Isolation Forest joblib
-│   ├── inference_engine.py         # Practical 9 Champion scikit-learn models
-│   └── pdf_generator.py            # ReportLab publication-ready incident PDF export
+│   ├── inference_engine.py         # Practical 9 Champion scikit-learn models (with standard scaling)
+│   └── pdf_generator.py            # fpdf2 publication-ready incident PDF export
 ├── run_practical10.py              # Single-command unified platform launcher
 └── README.md                       # Comprehensive platform documentation
 ```

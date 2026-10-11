@@ -152,8 +152,8 @@ def generate_threat_audit_pdf(
     pdf.multi_cell(190, 5, 
         "1. Blacklist detected top attacking IP addresses at the edge reverse-proxy / Cloudflare WAF.\n"
         "2. Review web application parameter validation for SQL Injection and Command Injection endpoints.\n"
-        "3. Audit high-anomaly requests flagged with Anomaly Score > 0.65 for zero-day exploitation attempts.\n"
+        "3. Audit high-anomaly requests flagged with Anomaly Score >= 0.52 for zero-day exploitation attempts.\n"
         "4. Enforce strict rate-limiting policies for clients exhibiting burst request velocities > 20 req/sec."
     )
 
-    return pdf.output()
+    return bytes(pdf.output())

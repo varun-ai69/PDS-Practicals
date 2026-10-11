@@ -66,18 +66,27 @@ SAMPLE_LOGS = {
         "194.26.29.112 - - [10/Oct/2026:13:55:52 +0000] \"POST /api/v1/auth/login HTTP/1.1\" 401 128 \"-\" \"Hydra/9.2\"\n"
         "171.25.193.20 - - [10/Oct/2026:13:55:54 +0000] \"GET /api/v1/feed HTTP/1.1\" 503 340 \"-\" \"LOIC/1.0\""
     ),
-    "benign_only": (
+    "clean_benign": (
         "192.168.1.100 - - [10/Oct/2026:12:01:00 +0000] \"GET /home HTTP/1.1\" 200 8420 \"-\" \"Mozilla/5.0\"\n"
         "192.168.1.100 - - [10/Oct/2026:12:01:02 +0000] \"GET /static/css/main.css HTTP/1.1\" 200 1420 \"-\" \"Mozilla/5.0\"\n"
         "192.168.1.100 - - [10/Oct/2026:12:01:03 +0000] \"GET /static/js/bundle.js HTTP/1.1\" 200 32400 \"-\" \"Mozilla/5.0\"\n"
         "192.168.1.102 - - [10/Oct/2026:12:01:10 +0000] \"GET /products/category/hardware HTTP/1.1\" 200 12500 \"-\" \"Mozilla/5.0\"\n"
-        "192.168.1.102 - - [10/Oct/2026:12:01:15 +0000] \"GET /products/view/1049 HTTP/1.1\" 200 9400 \"-\" \"Mozilla/5.0\""
+        "192.168.1.102 - - [10/Oct/2026:12:01:15 +0000] \"GET /products/view/1049 HTTP/1.1\" 200 9400 \"-\" \"Mozilla/5.0\"\n"
+        "192.168.1.105 - - [10/Oct/2026:12:01:22 +0000] \"GET /about-us HTTP/1.1\" 200 5310 \"-\" \"Mozilla/5.0\"\n"
+        "192.168.1.108 - - [10/Oct/2026:12:01:30 +0000] \"GET /contact HTTP/1.1\" 200 4200 \"-\" \"Mozilla/5.0\""
     ),
-    "sqli_focus": (
+    "sqli_wave": (
         "45.146.164.27 - - [10/Oct/2026:14:00:01 +0000] \"GET /items.php?id=1%27%20UNION%20SELECT%20null,schema_name%20FROM%20information_schema.schemata-- HTTP/1.1\" 500 480 \"-\" \"sqlmap/1.5\"\n"
         "45.146.164.27 - - [10/Oct/2026:14:00:03 +0000] \"GET /items.php?id=1%27%20AND%201=1-- HTTP/1.1\" 200 4120 \"-\" \"sqlmap/1.5\"\n"
         "45.146.164.27 - - [10/Oct/2026:14:00:05 +0000] \"GET /items.php?id=1%27%20AND%201=2-- HTTP/1.1\" 500 210 \"-\" \"sqlmap/1.5\"\n"
-        "45.146.164.27 - - [10/Oct/2026:14:00:07 +0000] \"GET /users.php?name=admin%27-- HTTP/1.1\" 200 3200 \"-\" \"Mozilla/5.0\""
+        "45.146.164.27 - - [10/Oct/2026:14:00:07 +0000] \"GET /users.php?name=admin%27-- HTTP/1.1\" 200 3200 \"-\" \"Mozilla/5.0\"\n"
+        "45.146.164.27 - - [10/Oct/2026:14:00:09 +0000] \"POST /login.php?user=%27%20OR%20%271%27=%271 HTTP/1.1\" 500 512 \"-\" \"sqlmap/1.5\""
+    ),
+    "path_traversal_wave": (
+        "185.220.100.241 - - [10/Oct/2026:14:05:01 +0000] \"GET /download.php?file=../../../../etc/passwd HTTP/1.1\" 403 240 \"-\" \"curl/7.81.0\"\n"
+        "185.220.100.241 - - [10/Oct/2026:14:05:03 +0000] \"GET /view?doc=..%2f..%2f..%2fwindows%2fwin.ini HTTP/1.1\" 404 180 \"-\" \"Mozilla/5.0\"\n"
+        "185.220.100.241 - - [10/Oct/2026:14:05:05 +0000] \"GET /static/../../../../boot.ini HTTP/1.1\" 403 210 \"-\" \"curl/7.81.0\"\n"
+        "185.220.100.241 - - [10/Oct/2026:14:05:07 +0000] \"GET /images/..%252f..%252f..%252fetc%252fshadow HTTP/1.1\" 403 190 \"-\" \"curl/7.81.0\""
     )
 }
 
@@ -334,7 +343,7 @@ def export_pdf(run_id: str):
         "attack_rate": run_data["attack_rate_pct"],
         "benign_count": run_data["benign_count"],
         "benign_rate": round(100.0 - run_data["attack_rate_pct"], 2),
-        "novel_anomalies": sum(1 for r in run_data.get("requests", []) if r.get("anomaly_score", 0) > 0.55)
+        "novel_anomalies": sum(1 for r in run_data.get("requests", []) if r.get("anomaly_score", 0) >= 0.52)
     }
 
     df_results = pd.DataFrame(run_data.get("requests", []))
@@ -343,7 +352,7 @@ def export_pdf(run_id: str):
 
     model_name = run_data.get("model_used", "Random Forest Ensemble (Champion)")
 
-    pdf_bytes = generate_threat_audit_pdf(summary, df_results, model_name)
+    pdf_bytes = bytes(generate_threat_audit_pdf(summary, df_results, model_name))
 
     return Response(
         content=pdf_bytes,

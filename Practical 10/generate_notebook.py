@@ -177,7 +177,7 @@ df_results = pd.concat([df_clean, df_preds], axis=1)
 print(f"Total Requests Analyzed: {len(df_results)}")
 print(f"Malicious Attacks Flagged: {df_results['is_attack'].sum()}")
 print(f"Legitimate Requests Allowed: {(~df_results['is_attack']).sum()}")
-print(f"Novel / Zero-Day Anomalies: {df_results['is_novel_anomaly'].sum()}")
+print(f"Novel / Zero-Day Anomalies: {df_results['is_anomaly'].sum()}")
 
 # Attack Vector Breakdown
 print("\\nDetected Attack Vector Distribution:")
@@ -233,7 +233,7 @@ cells.append(make_code("""summary_stats = {
     "benign_count": int((~df_results["is_attack"]).sum()),
     "attack_rate": float(df_results["is_attack"].mean() * 100),
     "benign_rate": float((~df_results["is_attack"]).mean() * 100),
-    "novel_anomalies": int(df_results["is_novel_anomaly"].sum())
+    "novel_anomalies": int(df_results["is_anomaly"].sum())
 }
 
 output_pdf_path = PRACTICAL_10_DIR / "outputs" / "executive_threat_audit_report.pdf"

@@ -43,6 +43,7 @@ Thumbs.db
 *.zip
 *.7z
 *.gz
+!model_evaluation/outputs/reports/evaluation_metrics.csv
 
 # Raw Datasets & Subfolders
 datasets/
