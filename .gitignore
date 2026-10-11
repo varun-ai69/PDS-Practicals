@@ -44,6 +44,7 @@ Thumbs.db
 *.7z
 *.gz
 !model_evaluation/outputs/reports/evaluation_metrics.csv
+!fine_tuned/reports/finetuned_metrics.csv
 
 # Raw Datasets & Subfolders
 datasets/

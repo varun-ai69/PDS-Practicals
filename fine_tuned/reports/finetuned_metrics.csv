@@ -1,0 +1,3 @@
+Model Name,100k Test Acc (%),100k Macro Recall (%),100k Macro F1,225-Req Attack Recall (%),225-Req Benign Specificity (%),225-Req False Alarm (%),225-Req Binary Accuracy (%),Latency (ms)
+Baseline Champion RF,98.72,99.62,0.9881,95.86,60.0,40.0,83.11,26.14
+Fine-Tuned Sentinel RF,98.92,99.55,0.9892,71.03,100.0,0.0,81.33,27.63
