@@ -3,48 +3,64 @@
 ================================================================================
 
 Course         : Python for Data Science (BE05000231_PDS)
-Execution Date : 2026-10-10 20:01:51
+Execution Date : 2026-10-11 04:04:05
 
 --------------------------------------------------------------------------------
 1. DUAL EXPERIMENTAL DESIGN SUMMARY
 --------------------------------------------------------------------------------
-Untouched Test Partition      : 60,002 records (20% locked test set)
-Experiment A (Imbalanced Train): 240,008 records (80% natural split, 68.7% benign)
-Experiment B (Balanced Train)  : 165,000 records (SMOTE equalized at 15,000 / class)
+Untouched Test Partition       : 100,000 records (20% locked test partition)
+Experiment A (Imbalanced Train): 400,000 records (80% natural split from 500k master log)
+Experiment B (Balanced Train)  : 275,000 records (Equalized at 25,000 / class across 11 classes)
 Total Evaluated Attack Classes : 11 classes
 Total Evaluated Feature Vector : 31 numerical features (Canonical + Anomaly Score)
 
 --------------------------------------------------------------------------------
 2. MODEL PERFORMANCE COMPARISON MATRIX
 --------------------------------------------------------------------------------
-Experiment & Model                         | Accuracy | Macro F1 | Macro Rec | Fit (s)
+Experiment & Model                            | Accuracy | Macro F1 | Macro Rec | Fit (s)
 --------------------------------------------------------------------------------
-Exp A (Imbalanced) - Logistic Regression (Linear) |   96.47% |   0.9291 |    0.9480 |   17.90
-Exp A (Imbalanced) - Decision Tree (Single Tree) |   99.03% |   0.9796 |    0.9867 |    2.20
-Exp A (Imbalanced) - Random Forest (Ensemble) |   99.34% |   0.9871 |    0.9922 |    5.90
-Exp B (Balanced) - Logistic Regression (Linear) |   95.31% |   0.9179 |    0.9769 |    4.73
-Exp B (Balanced) - Decision Tree (Single Tree) |   97.98% |   0.9615 |    0.9935 |    2.20
-Exp B (Balanced) - Random Forest (Ensemble) |   97.77% |   0.9584 |    0.9947 |    4.80
-Tuned (Balanced) - Decision Tree (Tuned: d=20, entropy) |   98.96% |   0.9804 |    0.9964 |    2.79
-Tuned (Balanced) - Random Forest (Tuned: d=25, n=150, entropy) |   98.36% |   0.9690 |    0.9970 |    9.91
+Exp A (Imbalanced) - Logistic Regression (Linear) |   96.28% |   0.9610 |    0.9660 |   34.49
+Exp A (Imbalanced) - Decision Tree (Single Tree) |   97.97% |   0.9775 |    0.9735 |    4.47
+Exp A (Imbalanced) - Random Forest (Ensemble) |   98.76% |   0.9871 |    0.9872 |   13.67
+Exp B (Balanced) - Logistic Regression (Linear) |   94.95% |   0.9503 |    0.9802 |   15.87
+Exp B (Balanced) - Decision Tree (Single Tree) |   97.32% |   0.9737 |    0.9914 |    3.00
+Exp B (Balanced) - Random Forest (Ensemble)   |   97.07% |   0.9720 |    0.9920 |    8.32
+Tuned (Balanced) - Decision Tree (Tuned: d=20, entropy) |   99.01% |   0.9908 |    0.9958 |    2.57
+Tuned (Balanced) - Random Forest (Tuned: d=25, n=150, entropy) |   98.72% |   0.9881 |    0.9962 |   11.68
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-3. KEY SCIENTIFIC FINDINGS & OBSERVATIONS
+3. CLASS-BY-CLASS RECALL IMPACT: IMBALANCED VS BALANCED
+--------------------------------------------------------------------------------
+Class                  | Test Support | Exp A Recall | Exp B Recall | Delta   
+--------------------------------------------------------------------------------
+benign                 |       35,813 |       98.25% |       91.97% |   -6.28%
+brute_force            |        6,952 |      100.00% |      100.00% |   +0.00%
+command_injection      |        3,693 |       94.29% |       99.97% |   +5.69%
+ddos_http_flood        |        6,436 |       96.04% |       99.29% |   +3.25%
+dir_fuzzing            |        7,000 |       99.91% |      100.00% |   +0.09%
+mal_scanner            |        7,000 |      100.00% |      100.00% |   +0.00%
+path_traversal         |        7,088 |      100.00% |      100.00% |   +0.00%
+sqli                   |        5,331 |       97.47% |      100.00% |   +2.53%
+ssrf                   |        7,000 |      100.00% |      100.00% |   +0.00%
+web_shell              |        7,000 |       99.99% |      100.00% |   +0.01%
+xss                    |        6,687 |       99.96% |       99.96% |   +0.00%
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+4. FACTUAL SCIENTIFIC FINDINGS & OBSERVATIONS
 --------------------------------------------------------------------------------
 1. High Multi-Class Discriminability:
-   Both Decision Trees and Random Forests achieve >97.7% accuracy and >95.8% Macro F1,
-   proving that the 30 canonical features extracted in Practical 5 provide strong
-   orthogonal separation across all 11 classes.
+   Tree-based architectures (Decision Tree & Random Forest) achieve superior separation
+   on high-dimensional security telemetry due to non-linear axis-aligned partitioning.
 
-2. Impact of SMOTE Balancing (Experiment A vs B):
-   Training on the SMOTE-balanced dataset boosts Macro Recall to an outstanding 99.47%,
-   ensuring that minority attacks like Command Injection (985 test samples) and SQLi (1,673 samples)
-   are detected with near-zero false negatives.
+2. Impact of Class Equalization (Exp A vs Exp B):
+   Balancing the training dataset significantly reduces False Negatives on rare attack classes,
+   ensuring stealthy minority attacks receive equitable optimization attention.
 
-3. Ensemble Superiority:
-   Random Forest outperforms the linear Logistic Regression baseline across all metrics,
-   successfully capturing non-linear interactions between payload entropy and arrival velocity.
+3. Multi-Model Architecture Deployment:
+   All trained models and scalers are systematically organized under outputs/models/balanced/
+   and outputs/models/unbalanced/ for modular SOC real-time inference integration.
 
 ================================================================================
 END OF PRACTICAL 9 CLASSIFIER REPORT
